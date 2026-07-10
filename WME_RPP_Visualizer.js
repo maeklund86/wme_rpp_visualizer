@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         WME RPP Visualizer
 // @namespace    https://waze.com
-// @version      1.0.0
+// @version      1.1.0
 // @description  Show street numbers, entry points, and connection lines for Residential Point Places (RPPs)
 // @author       RucaDestiny
 // @downloadURL  https://greasyfork.org/scripts/586509-wme-rpp-visualizer/code/WME%20RPP%20Visualizer.user.js
