@@ -321,7 +321,11 @@
 
             // No entry points — draw line from RPP marker directly to nearest road
             if (showLines && (!entryPoints || entryPoints.length === 0) && segments.length > 0) {
-                addRoadConnection(rppPoint, venueId, features, segments);
+                try {
+                    addRoadConnection(rppPoint, venueId, features, segments);
+                } catch (err) {
+                    debugLog('[RPP] fallback road line error:', err.message);
+                }
             }
         });
 
