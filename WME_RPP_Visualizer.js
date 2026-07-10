@@ -249,6 +249,13 @@
         strokeOpacity: 0.8
     };
 
+    const ROAD_LINE_STYLE = {
+        strokeColor: '#FF9800',
+        strokeWidth: 1.5,
+        strokeDashstyle: 'dash',
+        strokeOpacity: 0.7
+    };
+
     function createVectorLayer() {
         removeVectorLayer();
 
