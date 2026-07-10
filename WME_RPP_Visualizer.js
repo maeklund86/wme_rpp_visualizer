@@ -162,6 +162,28 @@
         return best;
     }
 
+    function addRoadConnection(sourcePoint, venueId, features, segments) {
+        const nearest = findNearestRoadPoint(sourcePoint, segments);
+        if (!nearest.point) return;
+
+        const roadLine = new OpenLayers.Geometry.LineString([
+            sourcePoint.clone(), nearest.point
+        ]);
+        const roadLineFeature = new OpenLayers.Feature.Vector(roadLine, {
+            venueId: venueId,
+            type: 'road-line'
+        });
+        roadLineFeature.style = ROAD_LINE_STYLE;
+        features.push(roadLineFeature);
+
+        const roadDotFeature = new OpenLayers.Feature.Vector(nearest.point.clone(), {
+            venueId: venueId,
+            type: 'road-dot'
+        });
+        roadDotFeature.style = ROAD_DOT_STYLE;
+        features.push(roadDotFeature);
+    }
+
     function isInViewport(geometry, bounds) {
         if (!bounds || !geometry) return false;
         const x = geometry.x;
@@ -290,31 +312,16 @@
                             W.map.getOLMap().getProjectionObject()
                         );
 
-                        const nearest = findNearestRoadPoint(entryPoint, segments);
-                        if (nearest.point) {
-                            const roadLine = new OpenLayers.Geometry.LineString([
-                                entryPoint.clone(), nearest.point
-                            ]);
-                            const roadLineFeature = new OpenLayers.Feature.Vector(roadLine, {
-                                venueId: venueId,
-                                navIndex: idx,
-                                type: 'road-line'
-                            });
-                            roadLineFeature.style = ROAD_LINE_STYLE;
-                            features.push(roadLineFeature);
-
-                            const roadDotFeature = new OpenLayers.Feature.Vector(nearest.point.clone(), {
-                                venueId: venueId,
-                                navIndex: idx,
-                                type: 'road-dot'
-                            });
-                            roadDotFeature.style = ROAD_DOT_STYLE;
-                            features.push(roadDotFeature);
-                        }
+                        addRoadConnection(entryPoint, venueId, features, segments);
                     } catch (err) {
                         debugLog('[RPP] road line error:', err.message);
                     }
                 });
+            }
+
+            // No entry points — draw line from RPP marker directly to nearest road
+            if (showLines && (!entryPoints || entryPoints.length === 0) && segments.length > 0) {
+                addRoadConnection(rppPoint, venueId, features, segments);
             }
         });
 
