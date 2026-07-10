@@ -123,43 +123,39 @@
 
     function findNearestRoadPoint(point, segments) {
         let best = { point: null, distance: Infinity, segmentId: null };
-
         segments.forEach(segment => {
-            const geom = segment.geometry;
+            const geom = segment.geometry || segment.attributes?.geometry;
             if (!geom) return;
 
-            const components = geom.components || [geom];
-            components.forEach(comp => {
-                const vertices = comp.components || comp.vertices || [];
-                for (let i = 0; i < vertices.length - 1; i++) {
-                    const a = vertices[i];
-                    const b = vertices[i + 1];
+            const vertices = geom.components || [];
+            for (let i = 0; i < vertices.length - 1; i++) {
+                const a = vertices[i];
+                const b = vertices[i + 1];
 
-                    const ax = point.x - a.x;
-                    const ay = point.y - a.y;
-                    const bx = b.x - a.x;
-                    const by = b.y - a.y;
+                const ax = point.x - a.x;
+                const ay = point.y - a.y;
+                const bx = b.x - a.x;
+                const by = b.y - a.y;
 
-                    const lenSq = bx * bx + by * by;
-                    if (lenSq === 0) continue;
+                const lenSq = bx * bx + by * by;
+                if (lenSq === 0) continue;
 
-                    let t = (ax * bx + ay * by) / lenSq;
-                    t = Math.max(0, Math.min(1, t));
+                let t = (ax * bx + ay * by) / lenSq;
+                t = Math.max(0, Math.min(1, t));
 
-                    const projX = a.x + t * bx;
-                    const projY = a.y + t * by;
+                const projX = a.x + t * bx;
+                const projY = a.y + t * by;
 
-                    const dx = point.x - projX;
-                    const dy = point.y - projY;
-                    const dist = dx * dx + dy * dy;
+                const dx = point.x - projX;
+                const dy = point.y - projY;
+                const dist = dx * dx + dy * dy;
 
-                    if (dist < best.distance) {
-                        best.distance = dist;
-                        best.point = new OpenLayers.Geometry.Point(projX, projY);
-                        best.segmentId = segment.segmentId || segment.id;
-                    }
+                if (dist < best.distance) {
+                    best.distance = dist;
+                    best.point = new OpenLayers.Geometry.Point(projX, projY);
+                    best.segmentId = segment.segmentId || segment.id;
                 }
-            });
+            }
         });
 
         best.distance = Math.sqrt(best.distance);
@@ -189,6 +185,27 @@
         if (!showLabels && !showLines) return [];
 
         const features = [];
+
+        const segModel = W.model?.segments;
+        debugLog('[RPP] segModel:', !!segModel, 'getObjArr:', typeof segModel?.getObjectArray, 'objects:', typeof segModel?.objects, 'getArr:', typeof segModel?.getArray);
+        const allSegments = segModel?.getObjectArray?.() ?? segModel?.getArray?.() ?? Object.values(segModel?.objects ?? {}) ?? [];
+        debugLog('[RPP] allSegments count:', allSegments.length);
+
+        const segments = allSegments.filter(s => {
+            const sg = s.geometry || s.attributes?.geometry;
+            if (!sg) return false;
+            const centroid = sg.getBounds?.()?.getCenterLonLat?.();
+            if (centroid) {
+                centroid.x = centroid.lon;
+                centroid.y = centroid.lat;
+                return isInViewport(centroid, bounds);
+            }
+            const pt = sg.components?.[0]?.components?.[0];
+            if (pt) return isInViewport(pt, bounds);
+            return true;
+        });
+        debugLog('[RPP] segments in viewport:', segments.length);
+
         const venues = W.model.venues.getObjectArray();
 
         let total = 0, residential = 0, hasGeom = 0, inView = 0;
@@ -254,6 +271,40 @@
                         features.push(lineFeature);
                     } catch (err) {
                         debugLog('[RPP] ep error:', err.message);
+                    }
+                });
+            }
+
+            // Entry -> Nearest road line
+            if (showLines && entryPoints && segments.length > 0) {
+                entryPoints.forEach((np, idx) => {
+                    try {
+                        const epAttr = np.attributes || np;
+                        const pt = epAttr._point || epAttr.point || epAttr.position;
+                        if (!pt) return;
+                        const coords = pt.coordinates || (pt.x != null ? [pt.x, pt.y] : null);
+                        if (!coords || coords.length < 2) return;
+                        const entryPoint = new OpenLayers.Geometry.Point(coords[0], coords[1]);
+                        entryPoint.transform(
+                            new OpenLayers.Projection('EPSG:4326'),
+                            W.map.getOLMap().getProjectionObject()
+                        );
+
+                        const nearest = findNearestRoadPoint(entryPoint, segments);
+                        if (nearest.point) {
+                            const roadLine = new OpenLayers.Geometry.LineString([
+                                entryPoint.clone(), nearest.point
+                            ]);
+                            const roadLineFeature = new OpenLayers.Feature.Vector(roadLine, {
+                                venueId: venueId,
+                                navIndex: idx,
+                                type: 'road-line'
+                            });
+                            roadLineFeature.style = ROAD_LINE_STYLE;
+                            features.push(roadLineFeature);
+                        }
+                    } catch (err) {
+                        debugLog('[RPP] road line error:', err.message);
                     }
                 });
             }
