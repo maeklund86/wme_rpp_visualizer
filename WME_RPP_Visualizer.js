@@ -121,6 +121,51 @@
         };
     }
 
+    function findNearestRoadPoint(point, segments) {
+        let best = { point: null, distance: Infinity, segmentId: null };
+
+        segments.forEach(segment => {
+            const geom = segment.geometry;
+            if (!geom) return;
+
+            const components = geom.components || [geom];
+            components.forEach(comp => {
+                const vertices = comp.components || comp.vertices || [];
+                for (let i = 0; i < vertices.length - 1; i++) {
+                    const a = vertices[i];
+                    const b = vertices[i + 1];
+
+                    const ax = point.x - a.x;
+                    const ay = point.y - a.y;
+                    const bx = b.x - a.x;
+                    const by = b.y - a.y;
+
+                    const lenSq = bx * bx + by * by;
+                    if (lenSq === 0) continue;
+
+                    let t = (ax * bx + ay * by) / lenSq;
+                    t = Math.max(0, Math.min(1, t));
+
+                    const projX = a.x + t * bx;
+                    const projY = a.y + t * by;
+
+                    const dx = point.x - projX;
+                    const dy = point.y - projY;
+                    const dist = dx * dx + dy * dy;
+
+                    if (dist < best.distance) {
+                        best.distance = dist;
+                        best.point = new OpenLayers.Geometry.Point(projX, projY);
+                        best.segmentId = segment.segmentId || segment.id;
+                    }
+                }
+            });
+        });
+
+        best.distance = Math.sqrt(best.distance);
+        return best;
+    }
+
     function isInViewport(geometry, bounds) {
         if (!bounds || !geometry) return false;
         const x = geometry.x;
