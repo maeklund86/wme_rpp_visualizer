@@ -302,6 +302,14 @@
                             });
                             roadLineFeature.style = ROAD_LINE_STYLE;
                             features.push(roadLineFeature);
+
+                            const roadDotFeature = new OpenLayers.Feature.Vector(nearest.point.clone(), {
+                                venueId: venueId,
+                                navIndex: idx,
+                                type: 'road-dot'
+                            });
+                            roadDotFeature.style = ROAD_DOT_STYLE;
+                            features.push(roadDotFeature);
                         }
                     } catch (err) {
                         debugLog('[RPP] road line error:', err.message);
@@ -347,9 +355,18 @@
 
     const ROAD_LINE_STYLE = {
         strokeColor: '#FF9800',
-        strokeWidth: 1.5,
+        strokeWidth: 2,
         strokeDashstyle: 'dash',
         strokeOpacity: 0.7
+    };
+
+    const ROAD_DOT_STYLE = {
+        pointRadius: 4,
+        fillColor: '#FF9800',
+        fillOpacity: 1,
+        strokeColor: '#FFFFFF',
+        strokeWidth: 1.5,
+        graphicName: 'circle'
     };
 
     function createVectorLayer() {
