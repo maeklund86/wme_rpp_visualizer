@@ -4,6 +4,7 @@
 // @version      1.0.0
 // @description  Show street numbers, entry points, and connection lines for Residential Point Places (RPPs)
 // @author       RucaDestiny
+// @supportURL   https://github.com/maeklund86/wme_rpp_visualizer
 // @match        https://*.waze.com/*editor*
 // @grant        GM_info
 // @license      MIT
@@ -373,7 +374,7 @@
         const enableLabel = createElem('label', {
             htmlFor: 'rpp-enable',
             style: { cursor: 'pointer', fontSize: '13px', fontWeight: '600', color: '#2E7D32' },
-            textContent: 'Näytä RPP-tiedot'
+            textContent: 'Show RPP Info'
         });
         enableContainer.appendChild(enableCheckbox);
         enableContainer.appendChild(enableLabel);
@@ -387,7 +388,7 @@
         const labelZoomContainer = createElem('div', { style: { marginBottom: '6px' } });
         const labelZoomLabel = createElem('label', {
             style: { fontSize: '11px', color: '#666', marginRight: '8px' },
-            textContent: 'Näytä numerot zoom:'
+            textContent: 'Show labels zoom:'
         });
         const labelZoomInput = createElem('input', {
             type: 'number',
@@ -413,7 +414,7 @@
         const lineZoomContainer = createElem('div', {});
         const lineZoomLabel = createElem('label', {
             style: { fontSize: '11px', color: '#666', marginRight: '8px' },
-            textContent: 'Näytä viivat zoom:'
+            textContent: 'Show lines zoom:'
         });
         const lineZoomInput = createElem('input', {
             type: 'number',
@@ -442,7 +443,7 @@
         const countDiv = createElem('div', {
             id: 'rpp-count',
             style: { padding: '8px', background: '#f5f5f5', borderRadius: '4px', textAlign: 'center', fontSize: '12px', color: '#666', marginBottom: '10px' },
-            textContent: countVisibleRPPs() + ' RPP näkyvillä'
+            textContent: countVisibleRPPs() + ' RPP visible'
         });
         divRoot.appendChild(countDiv);
 
@@ -480,7 +481,7 @@
     function updateSidebarCount() {
         if (!sidebarPanel?.countDiv) return;
         const count = enabled ? countVisibleRPPs() : 0;
-        sidebarPanel.countDiv.textContent = count + ' RPP näkyvillä';
+        sidebarPanel.countDiv.textContent = count + ' RPP visible';
     }
 
     // === INITIALIZATION ===
