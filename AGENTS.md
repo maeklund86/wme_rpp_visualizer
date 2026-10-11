@@ -19,6 +19,15 @@ Single-file WME userscript. No tests, no build, no lint, no typecheck.
 - Bump version in `@version` header on feature releases
 - Version format: semver
 
+## Git workflow
+
+- `main` is protected: never push to it directly — branch, commit, open a PR
+- Merging to `main` needs a code-owner approval in the GitHub UI (agents can't self-approve)
+- Re-landing a reverted commit: `cherry-pick` it onto the post-revert `main`, not `rebase`
+  (rebase drops the commit by patch-id, producing an empty PR)
+- A local `.git/hooks/pre-commit` runs `node --check` on the userscript (untracked by
+  design — guards this clone only)
+
 ## Architecture
 
 - Runs inside Waze Map Editor as Tampermonkey/Violentmonkey userscript
