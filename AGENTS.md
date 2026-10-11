@@ -29,20 +29,6 @@ Single-file WME userscript. No tests, no build, no lint, no typecheck.
 - Settings persisted to `localStorage` under `wme-rpp-visualizer-*` keys
 - Init listens for `wme-ready` event (or runs immediately if W already ready)
 
-## Agent skills
-
-### Issue tracker
-
-Issues live in this repo's GitHub Issues (`maeklund86/wme_rpp_visualizer`), managed via the `gh` CLI. See `docs/agents/issue-tracker.md`.
-
-### Triage labels
-
-Default five-role vocabulary: `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`. See `docs/agents/triage-labels.md`.
-
-### Domain docs
-
-Single-context: one `GLOSSARY.md` and `docs/adr/` at the repo root. See `docs/agents/domain.md`.
-
 ## Drawing overview
 
 - Blue dashed line: RPP center → entry/exit point
