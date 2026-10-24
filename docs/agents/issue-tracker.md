@@ -1,6 +1,6 @@
 # Issue tracker: GitHub
 
-Issues and specs for this repo live as GitHub issues. Use the `gh` CLI for all operations.
+Active issues and specs for this repo live as GitHub issues. Use the `gh` CLI for all operations. Completed design specs are archived in `docs/specs/archive/`; implementation plans live in `docs/plans/`.
 
 ## Conventions
 

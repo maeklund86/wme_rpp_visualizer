@@ -1,5 +1,7 @@
 # WME RPP Visualizer — Design Spec
 
+> Archived specification: retained as historical design context; future active specs are tracked in GitHub Issues.
+
 ## Purpose
 
 A WME userscript that adds persistent street number labels, entry point indicators, and connection lines for Residential Point Places (RPPs) without requiring the user to select each RPP individually.

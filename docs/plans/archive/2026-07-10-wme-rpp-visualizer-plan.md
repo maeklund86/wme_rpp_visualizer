@@ -1,6 +1,6 @@
 # WME RPP Visualizer — Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> Archived implementation plan: retained as a record of the original implementation.
 
 **Goal:** A WME userscript that renders street number labels, entry point dots, and connection lines for Residential Point Places (RPPs) without selection.
 

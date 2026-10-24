@@ -1,6 +1,6 @@
 # RPP Entry Point → Nearest Road Line — Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> Archived implementation plan: retained as a record of the original implementation.
 
 **Goal:** Draw dashed orange line from each RPP entry point dot to nearest point on closest road segment.
 

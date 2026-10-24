@@ -10,8 +10,8 @@ Single-file WME userscript. No tests, no build, no lint, no typecheck.
 |------|---------|
 | `WME_RPP_Visualizer.js` | sole source — userscript with inline metadata header |
 | `package.json` | dev dep only: `wme-sdk-typings` for type hints |
-| `superpowers/specs/` | design docs |
-| `superpowers/plans/` | implementation plans |
+| `docs/specs/archive/` | completed design specs; future active specs are GitHub Issues |
+| `docs/plans/` | active implementation plans; completed plans are archived |
 
 ## Dev workflow
 
@@ -43,10 +43,6 @@ Single-file WME userscript. No tests, no build, no lint, no typecheck.
 ### Issue tracker
 
 Issues live in this repo's GitHub Issues (`maeklund86/wme_rpp_visualizer`), managed via the `gh` CLI. See `docs/agents/issue-tracker.md`.
-
-### Triage labels
-
-Default five-role vocabulary: `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`. See `docs/agents/triage-labels.md`.
 
 ### Domain docs
 

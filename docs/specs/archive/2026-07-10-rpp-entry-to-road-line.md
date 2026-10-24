@@ -1,5 +1,7 @@
 # RPP Entry Point → Nearest Road Line — Design Spec
 
+> Archived specification: retained as historical design context; future active specs are tracked in GitHub Issues.
+
 ## Purpose
 
 Add a visual line from each entry point dot to the nearest point on the closest road segment. Helps editors verify whether an RPP entry point actually lands on a road, or needs adjustment.
