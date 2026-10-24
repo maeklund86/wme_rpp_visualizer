@@ -24,7 +24,7 @@
         enabled: 'wme-rpp-visualizer-enabled',
         labelZoom: 'wme-rpp-visualizer-label-zoom',
         lineZoom: 'wme-rpp-visualizer-line-zoom',
-        debug: 'wme-rpp-visualizer-debug'
+        debug: 'wme-rpp-visualizer-debug',
     };
 
     const DEFAULT_LABEL_ZOOM = 17;
@@ -50,7 +50,7 @@
     function createElem(tag, attrs) {
         const elem = document.createElement(tag);
         if (attrs) {
-            Object.keys(attrs).forEach(key => {
+            Object.keys(attrs).forEach((key) => {
                 if (key === 'style' && typeof attrs[key] === 'object') {
                     Object.assign(elem.style, attrs[key]);
                 } else if (key === 'innerHTML') {
@@ -117,13 +117,13 @@
             minX: extent[0] || extent.left,
             minY: extent[1] || extent.bottom,
             maxX: extent[2] || extent.right,
-            maxY: extent[3] || extent.top
+            maxY: extent[3] || extent.top,
         };
     }
 
     function findNearestRoadPoint(point, segments) {
         let best = { point: null, distance: Infinity, segmentId: null };
-        segments.forEach(segment => {
+        segments.forEach((segment) => {
             const geom = segment.geometry || segment.attributes?.geometry;
             if (!geom) return;
 
@@ -166,19 +166,17 @@
         const nearest = findNearestRoadPoint(sourcePoint, segments);
         if (!nearest.point) return;
 
-        const roadLine = new OpenLayers.Geometry.LineString([
-            sourcePoint.clone(), nearest.point
-        ]);
+        const roadLine = new OpenLayers.Geometry.LineString([sourcePoint.clone(), nearest.point]);
         const roadLineFeature = new OpenLayers.Feature.Vector(roadLine, {
             venueId: venueId,
-            type: 'road-line'
+            type: 'road-line',
         });
         roadLineFeature.style = ROAD_LINE_STYLE;
         features.push(roadLineFeature);
 
         const roadDotFeature = new OpenLayers.Feature.Vector(nearest.point.clone(), {
             venueId: venueId,
-            type: 'road-dot'
+            type: 'road-dot',
         });
         roadDotFeature.style = ROAD_DOT_STYLE;
         features.push(roadDotFeature);
@@ -188,8 +186,7 @@
         if (!bounds || !geometry) return false;
         const x = geometry.x;
         const y = geometry.y;
-        return x >= bounds.minX && x <= bounds.maxX &&
-               y >= bounds.minY && y <= bounds.maxY;
+        return x >= bounds.minX && x <= bounds.maxX && y >= bounds.minY && y <= bounds.maxY;
     }
 
     function getVenueAttrs(venue) {
@@ -209,11 +206,21 @@
         const features = [];
 
         const segModel = W.model?.segments;
-        debugLog('[RPP] segModel:', !!segModel, 'getObjArr:', typeof segModel?.getObjectArray, 'objects:', typeof segModel?.objects, 'getArr:', typeof segModel?.getArray);
-        const allSegments = segModel?.getObjectArray?.() ?? segModel?.getArray?.() ?? Object.values(segModel?.objects ?? {}) ?? [];
+        debugLog(
+            '[RPP] segModel:',
+            !!segModel,
+            'getObjArr:',
+            typeof segModel?.getObjectArray,
+            'objects:',
+            typeof segModel?.objects,
+            'getArr:',
+            typeof segModel?.getArray,
+        );
+        const allSegments =
+            segModel?.getObjectArray?.() ?? segModel?.getArray?.() ?? Object.values(segModel?.objects ?? {}) ?? [];
         debugLog('[RPP] allSegments count:', allSegments.length);
 
-        const segments = allSegments.filter(s => {
+        const segments = allSegments.filter((s) => {
             const sg = s.geometry || s.attributes?.geometry;
             if (!sg) return false;
             const centroid = sg.getBounds?.()?.getCenterLonLat?.();
@@ -230,11 +237,17 @@
 
         const venues = W.model.venues.getObjectArray();
 
-        let total = 0, residential = 0, hasGeom = 0, inView = 0;
-        venues.forEach(venue => {
+        let total = 0,
+            residential = 0,
+            hasGeom = 0,
+            inView = 0;
+        venues.forEach((venue) => {
             total++;
             const attrs = getVenueAttrs(venue);
-            if (!attrs.residential) { if (total === 1) debugLog('[RPP] first venue attrs.residential:', attrs.residential); return; }
+            if (!attrs.residential) {
+                if (total === 1) debugLog('[RPP] first venue attrs.residential:', attrs.residential);
+                return;
+            }
             residential++;
             if (!attrs.geometry) return;
             hasGeom++;
@@ -249,7 +262,7 @@
             if (showLabels && houseNumber) {
                 const labelFeature = new OpenLayers.Feature.Vector(rppPoint.clone(), {
                     text: houseNumber,
-                    venueId: venueId
+                    venueId: venueId,
                 });
                 labelFeature.style = Object.assign({}, LABEL_STYLE, { label: houseNumber });
                 features.push(labelFeature);
@@ -257,37 +270,51 @@
 
             // Entry points and lines
             const entryPoints = attrs.entryExitPoints || attrs.navigationPoints;
-            if (entryPoints) debugLog('[RPP] eplen:', entryPoints.length, 'showLines:', showLines, 'zoom:', currentZoom, 'threshold:', lineZoomThreshold);
+            if (entryPoints)
+                debugLog(
+                    '[RPP] eplen:',
+                    entryPoints.length,
+                    'showLines:',
+                    showLines,
+                    'zoom:',
+                    currentZoom,
+                    'threshold:',
+                    lineZoomThreshold,
+                );
             if (showLines && entryPoints) {
                 entryPoints.forEach((np, idx) => {
                     try {
                         const epAttr = np.attributes || np;
                         debugLog('[RPP] _point:', JSON.stringify(epAttr._point), 'type:', typeof epAttr._point);
                         const pt = epAttr._point || epAttr.point || epAttr.position;
-                        if (!pt) { debugLog('[RPP] no pt'); return; }
+                        if (!pt) {
+                            debugLog('[RPP] no pt');
+                            return;
+                        }
                         const coords = pt.coordinates || (pt.x != null ? [pt.x, pt.y] : null);
-                        if (!coords || coords.length < 2) { debugLog('[RPP] bad coords:', JSON.stringify(coords)); return; }
+                        if (!coords || coords.length < 2) {
+                            debugLog('[RPP] bad coords:', JSON.stringify(coords));
+                            return;
+                        }
                         const entryPoint = new OpenLayers.Geometry.Point(coords[0], coords[1]);
                         entryPoint.transform(
                             new OpenLayers.Projection('EPSG:4326'),
-                            W.map.getOLMap().getProjectionObject()
+                            W.map.getOLMap().getProjectionObject(),
                         );
 
                         // Entry dot
                         const dotFeature = new OpenLayers.Feature.Vector(entryPoint.clone(), {
                             venueId: venueId,
-                            navIndex: idx
+                            navIndex: idx,
                         });
                         dotFeature.style = ENTRY_DOT_STYLE;
                         features.push(dotFeature);
 
                         // RPP -> Entry line
-                        const rppToEntry = new OpenLayers.Geometry.LineString([
-                            rppPoint.clone(), entryPoint.clone()
-                        ]);
+                        const rppToEntry = new OpenLayers.Geometry.LineString([rppPoint.clone(), entryPoint.clone()]);
                         const lineFeature = new OpenLayers.Feature.Vector(rppToEntry, {
                             venueId: venueId,
-                            navIndex: idx
+                            navIndex: idx,
                         });
                         lineFeature.style = LINE_STYLE;
                         features.push(lineFeature);
@@ -299,7 +326,7 @@
 
             // Entry -> Nearest road line
             if (showLines && entryPoints && segments.length > 0) {
-                entryPoints.forEach((np, idx) => {
+                entryPoints.forEach((np, _idx) => {
                     try {
                         const epAttr = np.attributes || np;
                         const pt = epAttr._point || epAttr.point || epAttr.position;
@@ -309,7 +336,7 @@
                         const entryPoint = new OpenLayers.Geometry.Point(coords[0], coords[1]);
                         entryPoint.transform(
                             new OpenLayers.Projection('EPSG:4326'),
-                            W.map.getOLMap().getProjectionObject()
+                            W.map.getOLMap().getProjectionObject(),
                         );
 
                         addRoadConnection(entryPoint, venueId, features, segments);
@@ -329,7 +356,21 @@
             }
         });
 
-        if (total > 0) debugLog('[RPP] total:', total, 'res:', residential, 'geom:', hasGeom, 'view:', inView, 'zoom:', currentZoom, 'features:', features.length);
+        if (total > 0)
+            debugLog(
+                '[RPP] total:',
+                total,
+                'res:',
+                residential,
+                'geom:',
+                hasGeom,
+                'view:',
+                inView,
+                'zoom:',
+                currentZoom,
+                'features:',
+                features.length,
+            );
         return features;
     }
 
@@ -345,7 +386,7 @@
         fontSize: '11px',
         fontWeight: 'bold',
         labelOutlineColor: '#FFFFFF',
-        labelOutlineWidth: 3
+        labelOutlineWidth: 3,
     };
 
     const ENTRY_DOT_STYLE = {
@@ -354,21 +395,21 @@
         fillOpacity: 1,
         strokeColor: '#FFFFFF',
         strokeWidth: 2,
-        graphicName: 'circle'
+        graphicName: 'circle',
     };
 
     const LINE_STYLE = {
         strokeColor: '#2196F3',
         strokeWidth: 2,
         strokeDashstyle: 'dash',
-        strokeOpacity: 0.8
+        strokeOpacity: 0.8,
     };
 
     const ROAD_LINE_STYLE = {
         strokeColor: '#FF9800',
         strokeWidth: 2,
         strokeDashstyle: 'dash',
-        strokeOpacity: 0.7
+        strokeOpacity: 0.7,
     };
 
     const ROAD_DOT_STYLE = {
@@ -377,16 +418,13 @@
         fillOpacity: 1,
         strokeColor: '#FFFFFF',
         strokeWidth: 1.5,
-        graphicName: 'circle'
+        graphicName: 'circle',
     };
 
     function createVectorLayer() {
         removeVectorLayer();
 
-        vectorLayer = new OpenLayers.Layer.Vector(
-            'RPP Visualizer',
-            { displayInLayerSwitcher: false }
-        );
+        vectorLayer = new OpenLayers.Layer.Vector('RPP Visualizer', { displayInLayerSwitcher: false });
 
         W.map.getOLMap().addLayer(vectorLayer);
         return vectorLayer;
@@ -397,14 +435,19 @@
             try {
                 W.map.getOLMap().removeLayer(vectorLayer);
                 vectorLayer.destroy();
-            } catch (e) { /* ignore */ }
+            } catch {
+                /* ignore */
+            }
             vectorLayer = null;
         }
     }
 
     function refreshAnnotations() {
         if (refreshTimeout) clearTimeout(refreshTimeout);
-        if (isRefreshing) { pendingRefresh = true; return; }
+        if (isRefreshing) {
+            pendingRefresh = true;
+            return;
+        }
         refreshTimeout = setTimeout(doRefreshAnnotations, 50);
     }
 
@@ -443,7 +486,7 @@
         if (!bounds) return 0;
         let count = 0;
         const venues = W.model.venues.getObjectArray();
-        venues.forEach(venue => {
+        venues.forEach((venue) => {
             const attrs = getVenueAttrs(venue);
             if (attrs.residential && attrs.geometry && isInViewport(attrs.geometry, bounds)) count++;
         });
@@ -465,8 +508,8 @@
             style: {
                 padding: '8px',
                 fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-                fontSize: '12px'
-            }
+                fontSize: '12px',
+            },
         });
 
         // Header
@@ -480,9 +523,10 @@
                 paddingBottom: '4px',
                 display: 'flex',
                 alignItems: 'center',
-                justifyContent: 'space-between'
+                justifyContent: 'space-between',
             },
-            innerHTML: '<span>RPP Visualizer</span><span style="font-size:10px;color:#999;">v' + SCRIPT_VERSION + '</span>'
+            innerHTML:
+                '<span>RPP Visualizer</span><span style="font-size:10px;color:#999;">v' + SCRIPT_VERSION + '</span>',
         });
         divRoot.appendChild(header);
 
@@ -492,9 +536,9 @@
             type: 'checkbox',
             id: 'rpp-enable',
             checked: enabled,
-            style: { marginRight: '6px', accentColor: '#2E7D32', width: '18px', height: '18px' }
+            style: { marginRight: '6px', accentColor: '#2E7D32', width: '18px', height: '18px' },
         });
-        enableCheckbox.addEventListener('change', function(e) {
+        enableCheckbox.addEventListener('change', function (e) {
             enabled = e.target.checked;
             savePreferences();
             if (enabled) {
@@ -507,7 +551,7 @@
         const enableLabel = createElem('label', {
             htmlFor: 'rpp-enable',
             style: { cursor: 'pointer', fontSize: '13px', fontWeight: '600', color: '#2E7D32' },
-            textContent: 'Show RPP Info'
+            textContent: 'Show RPP Info',
         });
         enableContainer.appendChild(enableCheckbox);
         enableContainer.appendChild(enableLabel);
@@ -515,13 +559,19 @@
 
         // Zoom settings section
         const zoomSection = createElem('div', {
-            style: { marginBottom: '10px', padding: '8px', background: '#f9f9f9', borderRadius: '4px', border: '1px solid #e0e0e0' }
+            style: {
+                marginBottom: '10px',
+                padding: '8px',
+                background: '#f9f9f9',
+                borderRadius: '4px',
+                border: '1px solid #e0e0e0',
+            },
         });
 
         const labelZoomContainer = createElem('div', { style: { marginBottom: '6px' } });
         const labelZoomLabel = createElem('label', {
             style: { fontSize: '11px', color: '#666', marginRight: '8px' },
-            textContent: 'Show labels zoom:'
+            textContent: 'Show labels zoom:',
         });
         const labelZoomInput = createElem('input', {
             type: 'number',
@@ -530,9 +580,15 @@
             min: '1',
             max: '22',
             step: '1',
-            style: { width: '60px', padding: '4px 6px', border: '1px solid #ddd', borderRadius: '4px', fontSize: '12px' }
+            style: {
+                width: '60px',
+                padding: '4px 6px',
+                border: '1px solid #ddd',
+                borderRadius: '4px',
+                fontSize: '12px',
+            },
         });
-        labelZoomInput.addEventListener('change', function(e) {
+        labelZoomInput.addEventListener('change', function (e) {
             const value = parseInt(e.target.value, 10);
             if (!isNaN(value) && value >= 1 && value <= 22) {
                 labelZoomThreshold = value;
@@ -547,7 +603,7 @@
         const lineZoomContainer = createElem('div', {});
         const lineZoomLabel = createElem('label', {
             style: { fontSize: '11px', color: '#666', marginRight: '8px' },
-            textContent: 'Show lines zoom:'
+            textContent: 'Show lines zoom:',
         });
         const lineZoomInput = createElem('input', {
             type: 'number',
@@ -556,9 +612,15 @@
             min: '1',
             max: '22',
             step: '1',
-            style: { width: '60px', padding: '4px 6px', border: '1px solid #ddd', borderRadius: '4px', fontSize: '12px' }
+            style: {
+                width: '60px',
+                padding: '4px 6px',
+                border: '1px solid #ddd',
+                borderRadius: '4px',
+                fontSize: '12px',
+            },
         });
-        lineZoomInput.addEventListener('change', function(e) {
+        lineZoomInput.addEventListener('change', function (e) {
             const value = parseInt(e.target.value, 10);
             if (!isNaN(value) && value >= 1 && value <= 22) {
                 lineZoomThreshold = value;
@@ -575,8 +637,16 @@
         // RPP count
         const countDiv = createElem('div', {
             id: 'rpp-count',
-            style: { padding: '8px', background: '#f5f5f5', borderRadius: '4px', textAlign: 'center', fontSize: '12px', color: '#666', marginBottom: '10px' },
-            textContent: countVisibleRPPs() + ' RPP visible'
+            style: {
+                padding: '8px',
+                background: '#f5f5f5',
+                borderRadius: '4px',
+                textAlign: 'center',
+                fontSize: '12px',
+                color: '#666',
+                marginBottom: '10px',
+            },
+            textContent: countVisibleRPPs() + ' RPP visible',
         });
         divRoot.appendChild(countDiv);
 
@@ -586,16 +656,16 @@
             type: 'checkbox',
             id: 'rpp-debug',
             checked: debug,
-            style: { marginRight: '6px', accentColor: '#666', width: '14px', height: '14px' }
+            style: { marginRight: '6px', accentColor: '#666', width: '14px', height: '14px' },
         });
-        debugCheckbox.addEventListener('change', function(e) {
+        debugCheckbox.addEventListener('change', function (e) {
             debug = e.target.checked;
             savePreferences();
         });
         const debugLabel = createElem('label', {
             htmlFor: 'rpp-debug',
             style: { cursor: 'pointer', fontSize: '11px', color: '#999' },
-            textContent: 'Debug'
+            textContent: 'Debug',
         });
         debugContainer.appendChild(debugCheckbox);
         debugContainer.appendChild(debugLabel);
@@ -607,7 +677,7 @@
 
         sidebarPanel = {
             countDiv: document.getElementById('rpp-count'),
-            enableCheckbox: document.getElementById('rpp-enable')
+            enableCheckbox: document.getElementById('rpp-enable'),
         };
     }
 
@@ -630,11 +700,17 @@
         }
 
         const olMap = W.map.getOLMap();
-        olMap.events.register('zoomend', null, function() {
-            if (enabled) { updateSidebarCount(); refreshAnnotations(); }
+        olMap.events.register('zoomend', null, function () {
+            if (enabled) {
+                updateSidebarCount();
+                refreshAnnotations();
+            }
         });
-        olMap.events.register('moveend', null, function() {
-            if (enabled) { updateSidebarCount(); refreshAnnotations(); }
+        olMap.events.register('moveend', null, function () {
+            if (enabled) {
+                updateSidebarCount();
+                refreshAnnotations();
+            }
         });
 
         console.log('[WME RPP Visualizer] Initialized');
@@ -645,9 +721,12 @@
     if (W?.userscripts?.state?.isReady) {
         initializeScript();
     } else {
-        document.addEventListener('wme-ready', function() {
-            initializeScript();
-        }, { once: true });
+        document.addEventListener(
+            'wme-ready',
+            function () {
+                initializeScript();
+            },
+            { once: true },
+        );
     }
-
 })();

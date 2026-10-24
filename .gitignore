@@ -1,6 +1,5 @@
 node_modules/
-package-lock.json
-package.json
+dist/
 
 # MemPalace per-project files (issue #185)
 mempalace.yaml

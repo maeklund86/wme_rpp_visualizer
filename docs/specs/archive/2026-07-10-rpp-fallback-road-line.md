@@ -1,5 +1,7 @@
 # RPP Fallback Road Line — Design Spec
 
+> Archived specification: retained as historical design context; future active specs are tracked in GitHub Issues.
+
 ## Purpose
 
 When an RPP has no entry/exit points, draw orange connection line from RPP marker directly to nearest road segment. Helps editors visually assess road proximity even for RPPs missing navigation data.

@@ -1,6 +1,6 @@
 # WME RPP Visualizer — Sidebar Panel Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> Archived implementation plan: retained as a record of the original implementation.
 
 **Goal:** Replace floating button + panel UI in WME RPP Visualizer with a sidebar tab panel (following INSPIRE script pattern).
 

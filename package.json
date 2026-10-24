@@ -1,0 +1,19 @@
+{
+    "name": "wme_rpp_visualizer",
+    "private": true,
+    "type": "module",
+    "scripts": {
+        "build": "vp build && node scripts/verify-userscript-build.mjs",
+        "check": "vp check",
+        "test": "vp test"
+    },
+    "devDependencies": {
+        "vite-plus": "1.4.0",
+        "wme-sdk-typings": "https://web-assets.waze.com/wme_sdk_docs/production/latest/wme-sdk-typings.tgz"
+    },
+    "overrides": {
+        "vite": "npm:@voidzero-dev/vite-plus-core@1.4.0",
+        "vitest": "5.0.5"
+    },
+    "packageManager": "npm@11.19.1"
+}
