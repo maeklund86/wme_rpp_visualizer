@@ -24,12 +24,12 @@
 - Add: `vite.config.ts` (or the Vite+ configuration file selected by the installed CLI)
 - Add: source entry and build metadata support as required by the chosen Vite build mode
 
-- [ ] Remove only the ignore rules for `package.json` and `package-lock.json`; keep `node_modules/` ignored.
-- [ ] Establish npm as the package manager and install the pinned Vite+ 1.4.0 toolchain.
-- [ ] Update `AGENTS.md` to replace the single-file/no-tooling workflow with the source layout, Vite+ commands, test workflow, and generated userscript path.
-- [ ] Configure Vite+ checks, tests, and a single-file production build. Do not use `vp migrate`: this repo currently has no Vite/Vitest setup to migrate. Do not scaffold over the existing repo with `vp create`.
-- [ ] Build the existing userscript before restructuring its drawing logic.
-- [ ] Verify the emitted file begins with the userscript metadata, contains all current Greasy Fork URLs and WME grants, has no unresolved imports, and passes `node --check`.
+- [x] Remove only the ignore rules for `package.json` and `package-lock.json`; keep `node_modules/` ignored.
+- [x] Establish npm as the package manager and install the pinned Vite+ 1.4.0 toolchain.
+- [x] Update `AGENTS.md` to replace the single-file/no-tooling workflow with the source layout, Vite+ commands, test workflow, and generated userscript path.
+- [x] Configure Vite+ checks, tests, and a single-file production build. Do not use `vp migrate`: this repo currently has no Vite/Vitest setup to migrate. Do not scaffold over the existing repo with `vp create`.
+- [x] Build the existing userscript before restructuring its drawing logic.
+- [x] Verify the emitted file begins with the userscript metadata, contains all current Greasy Fork URLs and WME grants, has no unresolved imports, and passes `node --check`.
 - [ ] Record a manual WME baseline for startup, sidebar registration, labels, entry points, road lines, viewport/zoom behavior, and fallback rendering.
 
 **Gate:** The built artifact remains installable as a userscript and works in WME before annotation extraction begins.
@@ -66,10 +66,10 @@
 
 ### Task 4: Final validation and release readiness
 
-- [ ] Run `vp check`, `vp test`, and `vp build` from the repository root.
-- [ ] Check the built artifact's metadata, single-file shape, module-import absence, and syntax.
+- [x] Run `vp check`, `vp test`, and `vp build` from the repository root.
+- [x] Check the built artifact's metadata, single-file shape, module-import absence, and syntax.
 - [ ] Install the built `.user.js` in WME and repeat the manual behavior checklist, including coordinate projection and no-entry fallback.
-- [ ] Confirm the Greasy Fork `@downloadURL`, `@updateURL`, and `@supportURL` still identify the existing script.
-- [ ] Keep the current version during development; bump `@version` only in a separate release change.
+- [x] Confirm the Greasy Fork `@downloadURL`, `@updateURL`, and `@supportURL` still identify the existing script.
+- [x] Keep the current version during development; bump `@version` only in a separate release change.
 
 **Done when:** Automated checks pass, the generated file retains the Greasy Fork contract, and the manual WME smoke test matches the pre-refactor behavior.

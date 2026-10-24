@@ -2,20 +2,24 @@
 
 ## Repo
 
-Single-file WME userscript. No tests, no build, no lint, no typecheck.
+WME userscript built and checked with the project-local Vite+ toolchain.
 
 ## Key files
 
 | File | Purpose |
 |------|---------|
-| `WME_RPP_Visualizer.js` | sole source — userscript with inline metadata header |
-| `package.json` | dev dep only: `wme-sdk-typings` for type hints |
+| `WME_RPP_Visualizer.js` | userscript entry source with inline metadata header |
+| `package.json`, `package-lock.json` | pinned Vite+ and WME SDK development tools |
+| `vite.config.ts` | Vite+ build, test, lint, and format configuration |
+| `dist/WME_RPP_Visualizer.user.js` | generated installable userscript; do not edit directly |
 | `docs/specs/archive/` | completed design specs; future active specs are GitHub Issues |
 | `docs/plans/` | active implementation plans; completed plans are archived |
 
 ## Dev workflow
 
-- Edit `WME_RPP_Visualizer.js` directly, reload WME to test
+- Edit `WME_RPP_Visualizer.js`, then run `npm run build` to generate and validate `dist/WME_RPP_Visualizer.user.js`
+- Run `npm test` for tests and `npm run check` for formatting and linting
+- Install the generated `.user.js` in WME for runtime verification
 - Bump version in `@version` header on feature releases
 - Version format: semver
 
