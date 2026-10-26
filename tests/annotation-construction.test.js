@@ -261,6 +261,50 @@ describe('annotation construction', () => {
         ]);
     });
 
+    it('measures the 500-meter limit as ground distance at high latitudes', () => {
+        const webMercatorYAt60Degrees = 6378137 * Math.log(Math.tan(Math.PI / 4 + Math.PI / 6));
+        const descriptions = buildAnnotationDescriptions(
+            {
+                zoom: 18,
+                bounds: {
+                    minX: -50,
+                    minY: webMercatorYAt60Degrees - 10,
+                    maxX: 50,
+                    maxY: webMercatorYAt60Degrees + 10,
+                },
+                labelZoomThreshold: 17,
+                lineZoomThreshold: 18,
+                venues: [
+                    {
+                        residential: true,
+                        geometry: { x: 0, y: webMercatorYAt60Degrees },
+                        id: 'home',
+                        entryPoints: [{ point: { coordinates: [0, webMercatorYAt60Degrees] } }],
+                    },
+                ],
+                segments: [
+                    {
+                        points: [
+                            { x: -10, y: webMercatorYAt60Degrees + 900 },
+                            { x: 10, y: webMercatorYAt60Degrees + 900 },
+                        ],
+                    },
+                    {
+                        points: [
+                            { x: -10, y: webMercatorYAt60Degrees + 1100 },
+                            { x: 10, y: webMercatorYAt60Degrees + 1100 },
+                        ],
+                    },
+                ],
+            },
+            identityProjection,
+        );
+
+        expect(
+            descriptions.filter(({ kind }) => kind === 'road-dot').map(({ geometry }) => geometry.coordinates),
+        ).toEqual([[0, webMercatorYAt60Degrees + 900]]);
+    });
+
     it('applies the same eligible-road search to an RPP without entry points', () => {
         const descriptions = buildAnnotationDescriptions(
             {

@@ -44,6 +44,7 @@ const ROAD_DOT_STYLE = {
 };
 
 const MAX_ROAD_CONNECTION_DISTANCE_SQUARED = 500 * 500;
+const WEB_MERCATOR_EARTH_RADIUS_METERS = 6378137;
 // WME ROAD_TYPE IDs: walking trail, walkway, pedestrian boardwalk, and stairway.
 const INELIGIBLE_ROAD_TYPE_IDS = new Set([5, 9, 10, 16]);
 const INELIGIBLE_ROAD_TYPE_NAMES = new Set(['walkingtrail', 'pedestrianboardwalk', 'walkway', 'stairway']);
@@ -75,6 +76,8 @@ function isConnectionEligible(segment) {
 function findNearestRoadPoint(point, segments) {
     let bestPoint = null;
     let bestDistance = Infinity;
+    // WME's EPSG:900913 coordinates are enlarged by sec(latitude) versus ground distance.
+    const metersPerMapUnit = 1 / Math.cosh(point[1] / WEB_MERCATOR_EARTH_RADIUS_METERS);
 
     segments.forEach((segment) => {
         if (!isConnectionEligible(segment)) return;
@@ -95,8 +98,9 @@ function findNearestRoadPoint(point, segments) {
             const distanceX = point[0] - projectedPoint[0];
             const distanceY = point[1] - projectedPoint[1];
             const distanceSquared = distanceX * distanceX + distanceY * distanceY;
+            const groundDistanceSquared = distanceSquared * metersPerMapUnit * metersPerMapUnit;
 
-            if (distanceSquared <= MAX_ROAD_CONNECTION_DISTANCE_SQUARED && distanceSquared < bestDistance) {
+            if (groundDistanceSquared <= MAX_ROAD_CONNECTION_DISTANCE_SQUARED && distanceSquared < bestDistance) {
                 bestDistance = distanceSquared;
                 bestPoint = projectedPoint;
             }

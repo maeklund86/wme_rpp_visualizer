@@ -69,6 +69,7 @@
 - [x] Run `vp check`, `vp test`, and `vp build` from the repository root.
 - [x] Check the built artifact's metadata, single-file shape, module-import absence, and syntax.
 - [ ] Install the built `.user.js` in WME and repeat the manual behavior checklist, including coordinate projection and no-entry fallback.
+- [x] Profile line-visible synthetic refreshes with 3,000 segments and 40 entry points: zoom 18 median 3.29 ms / p95 6.29 ms; zoom 20 median 2.90 ms / p95 4.22 ms (15 runs after warm-up). This synthetic profile does not replace the pending WME representative-area smoke test.
 - [x] Confirm the Greasy Fork `@downloadURL`, `@updateURL`, and `@supportURL` still identify the existing script.
 - [x] Keep the current version during development; bump `@version` only in a separate release change.
 
