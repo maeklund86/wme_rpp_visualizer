@@ -21,6 +21,7 @@ describe('userscript metadata', () => {
     it('strips only the metadata header before bundling', () => {
         const code = stripUserscriptMetadata(source).trimStart();
 
-        expect(code).toMatch(/^\(function\s*\(\)/);
+        expect(code).toMatch(/^import \{ buildAnnotationDescriptions \} from '\.\/src\/annotation-construction\.js';/);
+        expect(code).toContain('(function () {');
     });
 });

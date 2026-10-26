@@ -10,7 +10,7 @@
 
 **Release contract:** Preserve the userscript metadata at the beginning of the built file, including `@match`, `@grant GM_info`, `@version`, `@downloadURL`, `@updateURL`, and `@supportURL`. Keep the WME-ready startup and duplicate-initialization guard. Do not bump the version until a feature release.
 
-**Compatibility target:** Behavior-preserving refactor. Keep the current zoom and viewport rules, feature geometry, styles, and feature properties. Separate any intentional behavior fixes from this work.
+**Compatibility target:** Preserve current zoom and RPP viewport rules, feature geometry, styles, and feature properties. Issue #1 intentionally changes road selection to search all available segments within 500 meters and exclude walking-only segment types.
 
 ---
 
@@ -40,11 +40,11 @@
 - Add: annotation module test fixtures and tests
 - Add: plain annotation input/output types or documented value shapes, as needed
 
-- [ ] Add tests for RPP filtering, missing geometry, viewport inclusion/exclusion, and label/line zoom thresholds.
-- [ ] Cover entry-point field variants (`_point`, `point`, `position`; `coordinates` and `x`/`y`) and entry-point-to-RPP drawing.
-- [ ] Cover nearest-road projection, road segment wrappers, no-entry fallback, no available segments, and degenerate segment geometry.
-- [ ] Assert feature kinds, styles, and metadata that are part of current behavior.
-- [ ] Use a deterministic test adapter for coordinate projection and feature materialization; do not require the WME runtime for these tests.
+- [x] Add tests for RPP filtering, missing geometry, viewport inclusion/exclusion, and label/line zoom thresholds.
+- [x] Cover entry-point field variants (`_point`, `point`, `position`; `coordinates` and `x`/`y`) and entry-point-to-RPP drawing.
+- [x] Cover nearest-road projection across the full segment snapshot, connection-eligible road types, the 500-meter limit, entry/fallback cases, and degenerate geometry.
+- [x] Assert feature kinds, styles, and metadata that are part of current behavior.
+- [x] Use deterministic adapters for projection and feature materialization; do not require the WME runtime for these tests.
 
 **Gate:** Tests describe existing behavior and pass before replacing the production drawing path.
 
@@ -56,10 +56,10 @@
 - Modify: entry module to gather the snapshot and install planned features
 - Modify: tests from Task 2 only when they expose a mismatch with observed current behavior
 
-- [ ] Move annotation decisions into the annotation module: residential venue handling, entry-point interpretation, nearest-road selection, labels, dots, lines, and fallback behavior.
-- [ ] Keep WME model access and viewport/zoom retrieval in the entry module; pass the module a plain snapshot.
-- [ ] Delegate WGS84-to-map projection and OpenLayers feature construction to the production adapter.
-- [ ] Keep sidebar, refresh scheduling, and vector-layer lifecycle outside the annotation module.
+- [x] Move annotation decisions into the annotation module: residential venue handling, entry-point interpretation, nearest-road selection, labels, dots, lines, and fallback behavior.
+- [x] Keep WME model access and viewport/zoom retrieval in the entry module; pass the module a plain snapshot.
+- [x] Delegate WGS84-to-map projection and OpenLayers feature construction to the production adapter.
+- [x] Keep sidebar, refresh scheduling, and vector-layer lifecycle outside the annotation module.
 - [ ] Compare generated features against the characterization tests and the manual WME baseline; do not fold unrelated fixes into the refactor.
 
 **Gate:** The tests pass and all previously visible annotations remain unchanged in WME.
@@ -69,6 +69,7 @@
 - [x] Run `vp check`, `vp test`, and `vp build` from the repository root.
 - [x] Check the built artifact's metadata, single-file shape, module-import absence, and syntax.
 - [ ] Install the built `.user.js` in WME and repeat the manual behavior checklist, including coordinate projection and no-entry fallback.
+- [x] Profile line-visible synthetic refreshes with 3,000 segments and 40 entry points: zoom 18 median 3.29 ms / p95 6.29 ms; zoom 20 median 2.90 ms / p95 4.22 ms (15 runs after warm-up). This synthetic profile does not replace the pending WME representative-area smoke test.
 - [x] Confirm the Greasy Fork `@downloadURL`, `@updateURL`, and `@supportURL` still identify the existing script.
 - [x] Keep the current version during development; bump `@version` only in a separate release change.
 

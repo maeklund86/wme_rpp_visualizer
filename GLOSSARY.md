@@ -13,6 +13,9 @@ A navigation point associated with an RPP, representing an entry or exit locatio
 **Road segment**:
 A mapped road geometry used to show a connection to an RPP or its entry point.
 
+**Connection-eligible road segment**:
+A road segment that may be selected for an RPP road connection. Walking trails, pedestrian boardwalks, walkways, and stairways are not eligible.
+
 **Annotation**:
 A map marking that visualizes an RPP, its entry point, or its connection to a road.
 
