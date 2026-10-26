@@ -14,6 +14,7 @@
 
 import { buildAnnotationDescriptions } from './src/annotation-construction.js';
 import { createOpenLayersAnnotationAdapter, toPlainSegmentSnapshot } from './src/openlayers-annotation-adapter.js';
+import { getUnseenReleaseNotice } from './src/release-notice.js';
 
 (function () {
     'use strict';
@@ -28,6 +29,14 @@ import { createOpenLayersAnnotationAdapter, toPlainSegmentSnapshot } from './src
         labelZoom: 'wme-rpp-visualizer-label-zoom',
         lineZoom: 'wme-rpp-visualizer-line-zoom',
         debug: 'wme-rpp-visualizer-debug',
+        releaseNotesVersion: 'wme-rpp-visualizer-release-notes-version',
+    };
+
+    const RELEASE_NOTES_BY_VERSION = {
+        '1.1.1': [
+            'Road connections now search all available segments, including segments outside the viewport.',
+            'Walking trails, pedestrian boardwalks, walkways, and stairways are skipped; connections are limited to 500 meters.',
+        ],
     };
 
     const DEFAULT_LABEL_ZOOM = 17;
@@ -304,6 +313,59 @@ import { createOpenLayersAnnotationAdapter, toPlainSegmentSnapshot } from './src
 
     let sidebarPanel = null;
 
+    function appendReleaseNotice(parent) {
+        let lastSeenVersion = null;
+        try {
+            lastSeenVersion = localStorage.getItem(STORAGE_KEYS.releaseNotesVersion);
+        } catch (error) {
+            console.warn('[WME RPP Visualizer] Failed to read release notice state:', error);
+        }
+
+        const releaseNotice = getUnseenReleaseNotice(SCRIPT_VERSION, lastSeenVersion, RELEASE_NOTES_BY_VERSION);
+        if (!releaseNotice) return;
+
+        const notice = createElem('section', {
+            role: 'status',
+            'aria-live': 'polite',
+            style: {
+                marginBottom: '10px',
+                padding: '8px',
+                background: '#eef6ff',
+                border: '1px solid #b8d7f5',
+                borderRadius: '4px',
+            },
+        });
+        notice.appendChild(
+            createElem('div', {
+                textContent: `What's new in v${releaseNotice.version}`,
+                style: { fontWeight: 'bold', color: '#0052A5', marginBottom: '6px' },
+            }),
+        );
+
+        const notesList = createElem('ul', { style: { margin: '0 0 8px', paddingLeft: '18px' } });
+        releaseNotice.notes.forEach((note) => {
+            notesList.appendChild(createElem('li', { textContent: note, style: { marginBottom: '4px' } }));
+        });
+        notice.appendChild(notesList);
+
+        const dismissButton = createElem('button', {
+            type: 'button',
+            textContent: 'Got it',
+            style: { padding: '4px 8px', cursor: 'pointer' },
+        });
+        dismissButton.addEventListener('click', () => {
+            try {
+                localStorage.setItem(STORAGE_KEYS.releaseNotesVersion, releaseNotice.version);
+            } catch (error) {
+                console.warn('[WME RPP Visualizer] Failed to save release notice state:', error);
+                return;
+            }
+            notice.remove();
+        });
+        notice.appendChild(dismissButton);
+        parent.appendChild(notice);
+    }
+
     async function createSidebarPanel() {
         console.log('[WME RPP Visualizer] Creating sidebar panel...');
 
@@ -336,6 +398,7 @@ import { createOpenLayersAnnotationAdapter, toPlainSegmentSnapshot } from './src
                 '<span>RPP Visualizer</span><span style="font-size:10px;color:#999;">v' + SCRIPT_VERSION + '</span>',
         });
         divRoot.appendChild(header);
+        appendReleaseNotice(divRoot);
 
         // Enable toggle
         const enableContainer = createElem('div', { style: { marginBottom: '10px' } });
