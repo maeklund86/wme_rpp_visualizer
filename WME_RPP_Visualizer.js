@@ -12,6 +12,9 @@
 // @license      MIT
 // ==/UserScript==
 
+import { buildAnnotationDescriptions } from './src/annotation-construction.js';
+import { createOpenLayersAnnotationAdapter, toPlainSegmentSnapshot } from './src/openlayers-annotation-adapter.js';
+
 (function () {
     'use strict';
 
@@ -121,67 +124,6 @@
         };
     }
 
-    function findNearestRoadPoint(point, segments) {
-        let best = { point: null, distance: Infinity, segmentId: null };
-        segments.forEach((segment) => {
-            const geom = segment.geometry || segment.attributes?.geometry;
-            if (!geom) return;
-
-            const vertices = geom.components || [];
-            for (let i = 0; i < vertices.length - 1; i++) {
-                const a = vertices[i];
-                const b = vertices[i + 1];
-
-                const ax = point.x - a.x;
-                const ay = point.y - a.y;
-                const bx = b.x - a.x;
-                const by = b.y - a.y;
-
-                const lenSq = bx * bx + by * by;
-                if (lenSq === 0) continue;
-
-                let t = (ax * bx + ay * by) / lenSq;
-                t = Math.max(0, Math.min(1, t));
-
-                const projX = a.x + t * bx;
-                const projY = a.y + t * by;
-
-                const dx = point.x - projX;
-                const dy = point.y - projY;
-                const dist = dx * dx + dy * dy;
-
-                if (dist < best.distance) {
-                    best.distance = dist;
-                    best.point = new OpenLayers.Geometry.Point(projX, projY);
-                    best.segmentId = segment.segmentId || segment.id;
-                }
-            }
-        });
-
-        best.distance = Math.sqrt(best.distance);
-        return best;
-    }
-
-    function addRoadConnection(sourcePoint, venueId, features, segments) {
-        const nearest = findNearestRoadPoint(sourcePoint, segments);
-        if (!nearest.point) return;
-
-        const roadLine = new OpenLayers.Geometry.LineString([sourcePoint.clone(), nearest.point]);
-        const roadLineFeature = new OpenLayers.Feature.Vector(roadLine, {
-            venueId: venueId,
-            type: 'road-line',
-        });
-        roadLineFeature.style = ROAD_LINE_STYLE;
-        features.push(roadLineFeature);
-
-        const roadDotFeature = new OpenLayers.Feature.Vector(nearest.point.clone(), {
-            venueId: venueId,
-            type: 'road-dot',
-        });
-        roadDotFeature.style = ROAD_DOT_STYLE;
-        features.push(roadDotFeature);
-    }
-
     function isInViewport(geometry, bounds) {
         if (!bounds || !geometry) return false;
         const x = geometry.x;
@@ -193,6 +135,24 @@
         return venue.attributes || venue;
     }
 
+    function toPlainEntryPoint(entryPoint) {
+        try {
+            const attributes = entryPoint.attributes || entryPoint;
+            const point = attributes._point || attributes.point || attributes.position;
+            if (!point) return null;
+
+            const plainPoint = point.coordinates
+                ? { coordinates: Array.from(point.coordinates) }
+                : point.x != null
+                  ? { x: point.x, y: point.y }
+                  : {};
+            return { _point: plainPoint };
+        } catch (err) {
+            debugLog('[RPP] entry point snapshot error:', err.message);
+            return null;
+        }
+    }
+
     function buildAnnotationFeatures() {
         if (!W?.model?.venues?.getObjectArray) return [];
 
@@ -200,10 +160,7 @@
         const bounds = getViewportBounds();
         const showLabels = currentZoom >= labelZoomThreshold;
         const showLines = currentZoom >= lineZoomThreshold;
-
         if (!showLabels && !showLines) return [];
-
-        const features = [];
 
         const segModel = W.model?.segments;
         debugLog(
@@ -220,150 +177,44 @@
             segModel?.getObjectArray?.() ?? segModel?.getArray?.() ?? Object.values(segModel?.objects ?? {}) ?? [];
         debugLog('[RPP] allSegments count:', allSegments.length);
 
-        const segments = allSegments.filter((s) => {
-            const sg = s.geometry || s.attributes?.geometry;
-            if (!sg) return false;
-            const centroid = sg.getBounds?.()?.getCenterLonLat?.();
-            if (centroid) {
-                centroid.x = centroid.lon;
-                centroid.y = centroid.lat;
-                return isInViewport(centroid, bounds);
-            }
-            const pt = sg.components?.[0]?.components?.[0];
-            if (pt) return isInViewport(pt, bounds);
-            return true;
-        });
-        debugLog('[RPP] segments in viewport:', segments.length);
-
-        const venues = W.model.venues.getObjectArray();
-
-        let total = 0,
-            residential = 0,
-            hasGeom = 0,
-            inView = 0;
-        venues.forEach((venue) => {
-            total++;
+        const segments = allSegments.map(toPlainSegmentSnapshot).filter(Boolean);
+        const venues = W.model.venues.getObjectArray().map((venue) => {
             const attrs = getVenueAttrs(venue);
-            if (!attrs.residential) {
-                if (total === 1) debugLog('[RPP] first venue attrs.residential:', attrs.residential);
-                return;
-            }
-            residential++;
-            if (!attrs.geometry) return;
-            hasGeom++;
-            if (!isInViewport(attrs.geometry, bounds)) return;
-            inView++;
-
-            const rppPoint = attrs.geometry.clone();
-            const houseNumber = attrs.houseNumber || '';
-            const venueId = attrs.id;
-
-            // Label feature
-            if (showLabels && houseNumber) {
-                const labelFeature = new OpenLayers.Feature.Vector(rppPoint.clone(), {
-                    text: houseNumber,
-                    venueId: venueId,
-                });
-                labelFeature.style = Object.assign({}, LABEL_STYLE, { label: houseNumber });
-                features.push(labelFeature);
-            }
-
-            // Entry points and lines
             const entryPoints = attrs.entryExitPoints || attrs.navigationPoints;
-            if (entryPoints)
-                debugLog(
-                    '[RPP] eplen:',
-                    entryPoints.length,
-                    'showLines:',
-                    showLines,
-                    'zoom:',
-                    currentZoom,
-                    'threshold:',
-                    lineZoomThreshold,
-                );
-            if (showLines && entryPoints) {
-                entryPoints.forEach((np, idx) => {
-                    try {
-                        const epAttr = np.attributes || np;
-                        debugLog('[RPP] _point:', JSON.stringify(epAttr._point), 'type:', typeof epAttr._point);
-                        const pt = epAttr._point || epAttr.point || epAttr.position;
-                        if (!pt) {
-                            debugLog('[RPP] no pt');
-                            return;
-                        }
-                        const coords = pt.coordinates || (pt.x != null ? [pt.x, pt.y] : null);
-                        if (!coords || coords.length < 2) {
-                            debugLog('[RPP] bad coords:', JSON.stringify(coords));
-                            return;
-                        }
-                        const entryPoint = new OpenLayers.Geometry.Point(coords[0], coords[1]);
-                        entryPoint.transform(
-                            new OpenLayers.Projection('EPSG:4326'),
-                            W.map.getOLMap().getProjectionObject(),
-                        );
-
-                        // Entry dot
-                        const dotFeature = new OpenLayers.Feature.Vector(entryPoint.clone(), {
-                            venueId: venueId,
-                            navIndex: idx,
-                        });
-                        dotFeature.style = ENTRY_DOT_STYLE;
-                        features.push(dotFeature);
-
-                        // RPP -> Entry line
-                        const rppToEntry = new OpenLayers.Geometry.LineString([rppPoint.clone(), entryPoint.clone()]);
-                        const lineFeature = new OpenLayers.Feature.Vector(rppToEntry, {
-                            venueId: venueId,
-                            navIndex: idx,
-                        });
-                        lineFeature.style = LINE_STYLE;
-                        features.push(lineFeature);
-                    } catch (err) {
-                        debugLog('[RPP] ep error:', err.message);
-                    }
-                });
-            }
-
-            // Entry -> Nearest road line
-            if (showLines && entryPoints && segments.length > 0) {
-                entryPoints.forEach((np, _idx) => {
-                    try {
-                        const epAttr = np.attributes || np;
-                        const pt = epAttr._point || epAttr.point || epAttr.position;
-                        if (!pt) return;
-                        const coords = pt.coordinates || (pt.x != null ? [pt.x, pt.y] : null);
-                        if (!coords || coords.length < 2) return;
-                        const entryPoint = new OpenLayers.Geometry.Point(coords[0], coords[1]);
-                        entryPoint.transform(
-                            new OpenLayers.Projection('EPSG:4326'),
-                            W.map.getOLMap().getProjectionObject(),
-                        );
-
-                        addRoadConnection(entryPoint, venueId, features, segments);
-                    } catch (err) {
-                        debugLog('[RPP] road line error:', err.message);
-                    }
-                });
-            }
-
-            // No entry points — draw line from RPP marker directly to nearest road
-            if (showLines && (!entryPoints || entryPoints.length === 0) && segments.length > 0) {
-                try {
-                    addRoadConnection(rppPoint, venueId, features, segments);
-                } catch (err) {
-                    debugLog('[RPP] fallback road line error:', err.message);
-                }
-            }
+            return {
+                residential: attrs.residential,
+                geometry: attrs.geometry ? { x: attrs.geometry.x, y: attrs.geometry.y } : null,
+                houseNumber: attrs.houseNumber || '',
+                id: attrs.id,
+                entryPoints: entryPoints ? entryPoints.map(toPlainEntryPoint) : entryPoints,
+            };
         });
 
-        if (total > 0)
+        const snapshot = {
+            zoom: currentZoom,
+            bounds,
+            labelZoomThreshold,
+            lineZoomThreshold,
+            venues,
+            segments,
+        };
+        const adapter = createOpenLayersAnnotationAdapter(OpenLayers, W.map.getOLMap());
+        const descriptions = buildAnnotationDescriptions(snapshot, adapter.projectCoordinates);
+        const features = adapter.materialize(descriptions);
+
+        if (venues.length > 0) {
+            const residentialVenues = venues.filter((venue) => venue.residential);
+            const hasGeometry = residentialVenues.filter((venue) => venue.geometry).length;
+            const inView = residentialVenues.filter(
+                (venue) => venue.geometry && isInViewport(venue.geometry, bounds),
+            ).length;
             debugLog(
                 '[RPP] total:',
-                total,
+                venues.length,
                 'res:',
-                residential,
+                residentialVenues.length,
                 'geom:',
-                hasGeom,
+                hasGeometry,
                 'view:',
                 inView,
                 'zoom:',
@@ -371,55 +222,11 @@
                 'features:',
                 features.length,
             );
+        }
         return features;
     }
 
     // === VECTOR LAYER ===
-
-    const LABEL_STYLE = {
-        pointRadius: 0,
-        labelAlign: 'cm',
-        labelXOffset: 0,
-        labelYOffset: -20,
-        fontColor: '#222222',
-        fontFamily: 'Arial, sans-serif',
-        fontSize: '11px',
-        fontWeight: 'bold',
-        labelOutlineColor: '#FFFFFF',
-        labelOutlineWidth: 3,
-    };
-
-    const ENTRY_DOT_STYLE = {
-        pointRadius: 5,
-        fillColor: '#4CAF50',
-        fillOpacity: 1,
-        strokeColor: '#FFFFFF',
-        strokeWidth: 2,
-        graphicName: 'circle',
-    };
-
-    const LINE_STYLE = {
-        strokeColor: '#2196F3',
-        strokeWidth: 2,
-        strokeDashstyle: 'dash',
-        strokeOpacity: 0.8,
-    };
-
-    const ROAD_LINE_STYLE = {
-        strokeColor: '#FF9800',
-        strokeWidth: 2,
-        strokeDashstyle: 'dash',
-        strokeOpacity: 0.7,
-    };
-
-    const ROAD_DOT_STYLE = {
-        pointRadius: 4,
-        fillColor: '#FF9800',
-        fillOpacity: 1,
-        strokeColor: '#FFFFFF',
-        strokeWidth: 1.5,
-        graphicName: 'circle',
-    };
 
     function createVectorLayer() {
         removeVectorLayer();
