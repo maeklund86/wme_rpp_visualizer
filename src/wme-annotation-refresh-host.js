@@ -135,9 +135,40 @@ export function createWmeAnnotationRefreshHost({ getWme, getOpenLayers, getSetti
     function render(features) {
         const W = getWme();
         const OpenLayers = getOpenLayers();
-        vectorLayer = new OpenLayers.Layer.Vector('RPP Visualizer', { displayInLayerSwitcher: false });
-        W.map.getOLMap().addLayer(vectorLayer);
-        vectorLayer.addFeatures(features);
+        const map = W.map.getOLMap();
+        const previousLayer = vectorLayer;
+        const candidateLayer = new OpenLayers.Layer.Vector('RPP Visualizer', { displayInLayerSwitcher: false });
+
+        try {
+            candidateLayer.addFeatures(features);
+            map.addLayer(candidateLayer);
+        } catch (error) {
+            try {
+                map.removeLayer(candidateLayer);
+            } catch {
+                /* ignore candidate cleanup errors */
+            }
+            try {
+                candidateLayer.destroy();
+            } catch {
+                /* ignore candidate cleanup errors */
+            }
+            throw error;
+        }
+
+        vectorLayer = candidateLayer;
+        if (previousLayer) {
+            try {
+                map.removeLayer(previousLayer);
+            } catch {
+                /* ignore previous-layer cleanup errors */
+            }
+            try {
+                previousLayer.destroy();
+            } catch {
+                /* ignore previous-layer cleanup errors */
+            }
+        }
     }
 
     return {
@@ -153,5 +184,8 @@ export function createWmeAnnotationRefreshHost({ getWme, getOpenLayers, getSetti
         buildFeatures,
         clear,
         render,
+        logError(error) {
+            console.error('[WME RPP Visualizer] Annotation refresh failed:', error);
+        },
     };
 }
