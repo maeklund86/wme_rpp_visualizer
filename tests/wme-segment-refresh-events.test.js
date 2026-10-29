@@ -1,28 +1,23 @@
 import { describe, expect, it, vi } from 'vite-plus/test';
-import { subscribeToSegmentRefreshEvents } from '../src/wme-segment-refresh-events.js';
+import { SEGMENT_MODEL_EVENT_NAMES, createSegmentRefreshEventHandler } from '../src/wme-segment-refresh-events.js';
 
 describe('WME segment refresh events', () => {
-    it('tracks segment changes and requests refreshes only for segment events', () => {
-        const handlers = new Map();
-        const events = {
-            trackDataModelEvents: vi.fn(),
-            on: vi.fn(({ eventName, eventHandler }) => handlers.set(eventName, eventHandler)),
-        };
-        const requestRefresh = vi.fn();
-
-        subscribeToSegmentRefreshEvents(events, requestRefresh);
-
-        expect(events.trackDataModelEvents).toHaveBeenCalledWith({ dataModelName: 'segments' });
-        expect([...handlers.keys()]).toEqual([
+    it('provides the segment event names for entry-module subscriptions', () => {
+        expect(SEGMENT_MODEL_EVENT_NAMES).toEqual([
             'wme-data-model-objects-changed',
             'wme-data-model-objects-added',
             'wme-data-model-objects-removed',
         ]);
+    });
 
-        handlers.get('wme-data-model-objects-changed')({ dataModelName: 'venues', objectIds: [1] });
-        handlers.get('wme-data-model-objects-added')({ dataModelName: 'segments', objectIds: [2] });
-        handlers.get('wme-data-model-objects-removed')({ dataModelName: 'segments', objectIds: [3] });
-        handlers.get('wme-data-model-objects-changed')({ dataModelName: 'segments', objectIds: [4] });
+    it('creates a handler that requests refreshes only for segment events', () => {
+        const requestRefresh = vi.fn();
+        const eventHandler = createSegmentRefreshEventHandler(requestRefresh);
+
+        eventHandler({ dataModelName: 'venues', objectIds: [1] });
+        eventHandler({ dataModelName: 'segments', objectIds: [2] });
+        eventHandler({ dataModelName: 'segments', objectIds: [3] });
+        eventHandler({ dataModelName: 'segments', objectIds: [4] });
 
         expect(requestRefresh).toHaveBeenCalledTimes(3);
     });
