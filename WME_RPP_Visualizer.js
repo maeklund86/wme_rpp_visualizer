@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         WME RPP Visualizer
 // @namespace    https://waze.com
-// @version      1.1.1
+// @version      1.1.2
 // @description  Show street numbers, entry points, and connection lines for Residential Point Places (RPPs)
 // @author       RucaDestiny
 // @downloadURL  https://greasyfork.org/scripts/586509-wme-rpp-visualizer/code/WME%20RPP%20Visualizer.user.js
@@ -36,6 +36,10 @@ import { getUnseenReleaseNotice } from './src/release-notice.js';
         '1.1.1': [
             'Road connections now search all available segments, including segments outside the viewport.',
             'Walking trails, pedestrian boardwalks, walkways, and stairways are skipped; connections are limited to 500 meters.',
+        ],
+        '1.1.2': [
+            'Release notes open in a popup when the editor starts and remain available until dismissed.',
+            'Dismissal is remembered for the installed version.',
         ],
     };
 
@@ -313,7 +317,7 @@ import { getUnseenReleaseNotice } from './src/release-notice.js';
 
     let sidebarPanel = null;
 
-    function appendReleaseNotice(parent) {
+    function showReleaseNotice() {
         let lastSeenVersion = null;
         try {
             lastSeenVersion = localStorage.getItem(STORAGE_KEYS.releaseNotesVersion);
@@ -324,46 +328,92 @@ import { getUnseenReleaseNotice } from './src/release-notice.js';
         const releaseNotice = getUnseenReleaseNotice(SCRIPT_VERSION, lastSeenVersion, RELEASE_NOTES_BY_VERSION);
         if (!releaseNotice) return;
 
-        const notice = createElem('section', {
-            role: 'status',
-            'aria-live': 'polite',
+        const overlay = createElem('div', {
             style: {
-                marginBottom: '10px',
-                padding: '8px',
-                background: '#eef6ff',
-                border: '1px solid #b8d7f5',
-                borderRadius: '4px',
+                position: 'fixed',
+                inset: '0',
+                zIndex: '10000',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: '20px',
+                background: 'rgba(0, 0, 0, 0.45)',
             },
         });
-        notice.appendChild(
-            createElem('div', {
-                textContent: `What's new in v${releaseNotice.version}`,
-                style: { fontWeight: 'bold', color: '#0052A5', marginBottom: '6px' },
+        const dialog = createElem('section', {
+            role: 'dialog',
+            'aria-modal': 'true',
+            'aria-labelledby': 'rpp-release-notice-title',
+            style: {
+                boxSizing: 'border-box',
+                width: '100%',
+                maxWidth: '480px',
+                maxHeight: '80vh',
+                overflowY: 'auto',
+                padding: '20px',
+                background: '#fff',
+                color: '#333',
+                border: '1px solid #b8d7f5',
+                borderRadius: '6px',
+                boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)',
+                fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+            },
+        });
+        dialog.appendChild(
+            createElem('h2', {
+                id: 'rpp-release-notice-title',
+                textContent: `WME RPP Visualizer — What's new in v${releaseNotice.version}`,
+                style: { margin: '0 0 12px', fontSize: '20px', color: '#0052A5' },
             }),
         );
 
-        const notesList = createElem('ul', { style: { margin: '0 0 8px', paddingLeft: '18px' } });
+        const notesList = createElem('ul', { style: { margin: '0 0 16px', paddingLeft: '22px' } });
         releaseNotice.notes.forEach((note) => {
-            notesList.appendChild(createElem('li', { textContent: note, style: { marginBottom: '4px' } }));
+            notesList.appendChild(createElem('li', { textContent: note, style: { marginBottom: '6px' } }));
         });
-        notice.appendChild(notesList);
+        dialog.appendChild(notesList);
 
-        const dismissButton = createElem('button', {
+        const closeButton = createElem('button', {
             type: 'button',
-            textContent: 'Got it',
-            style: { padding: '4px 8px', cursor: 'pointer' },
+            textContent: 'Close',
+            style: {
+                padding: '7px 14px',
+                color: '#fff',
+                background: '#0052A5',
+                border: '0',
+                borderRadius: '4px',
+                cursor: 'pointer',
+            },
         });
-        dismissButton.addEventListener('click', () => {
+
+        const dismiss = () => {
             try {
                 localStorage.setItem(STORAGE_KEYS.releaseNotesVersion, releaseNotice.version);
             } catch (error) {
                 console.warn('[WME RPP Visualizer] Failed to save release notice state:', error);
-                return;
             }
-            notice.remove();
+            document.removeEventListener('keydown', handleKeyDown);
+            overlay.remove();
+        };
+        const handleKeyDown = (event) => {
+            if (event.key === 'Escape') {
+                event.preventDefault();
+                dismiss();
+            } else if (event.key === 'Tab') {
+                event.preventDefault();
+                closeButton.focus();
+            }
+        };
+
+        closeButton.addEventListener('click', dismiss);
+        overlay.addEventListener('click', (event) => {
+            if (event.target === overlay) dismiss();
         });
-        notice.appendChild(dismissButton);
-        parent.appendChild(notice);
+        dialog.appendChild(closeButton);
+        overlay.appendChild(dialog);
+        document.addEventListener('keydown', handleKeyDown);
+        document.body.appendChild(overlay);
+        closeButton.focus();
     }
 
     async function createSidebarPanel() {
@@ -398,8 +448,6 @@ import { getUnseenReleaseNotice } from './src/release-notice.js';
                 '<span>RPP Visualizer</span><span style="font-size:10px;color:#999;">v' + SCRIPT_VERSION + '</span>',
         });
         divRoot.appendChild(header);
-        appendReleaseNotice(divRoot);
-
         // Enable toggle
         const enableContainer = createElem('div', { style: { marginBottom: '10px' } });
         const enableCheckbox = createElem('input', {
@@ -563,6 +611,7 @@ import { getUnseenReleaseNotice } from './src/release-notice.js';
         console.log('[WME RPP Visualizer] Initializing...');
 
         loadPreferences();
+        showReleaseNotice();
         createSidebarPanel();
 
         if (enabled) {

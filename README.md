@@ -46,6 +46,16 @@ Labels and lines automatically appear/disappear as you pan and zoom the map.
 
 ## Changelog
 
+### 1.1.2
+
+- Release notes open in a popup when the editor starts and remain available until dismissed
+- Dismissal is remembered for the installed version
+
+### 1.1.1
+
+- Road connections search all available segments, including segments outside the viewport
+- Walking trails, pedestrian boardwalks, walkways, and stairways are skipped; connections are limited to 500 meters
+
 ### 1.1.0
 
 - Orange road connection lines from entry points to nearest road segment
