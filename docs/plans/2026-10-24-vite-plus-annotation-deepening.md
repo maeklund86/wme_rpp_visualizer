@@ -4,7 +4,9 @@
 
 **Workflow:** Use the `tdd` skill for behavior tests and extraction. Revisit the module seam with `codebase-design` if implementation evidence changes the agreed shape.
 
-**Architecture:** Split source into ES modules, keeping WME startup, sidebar, and refresh lifecycle in the entry module initially. The entry module gathers a plain WME snapshot. Annotation construction owns RPP drawing decisions and returns plain feature descriptions. A production adapter handles WGS84-to-map projection and materializes OpenLayers features; tests use deterministic adapters.
+**Architecture:** Split source into ES modules. The entry module owns WME startup, event subscriptions, preferences, and sidebar/count handling. A deep Annotation refresh lifecycle owns debounce, enable/zoom gates, and trailing refresh behavior through one `requestRefresh()` operation. A production WME/OpenLayers host adapter reads current state, builds and materializes features, and replaces or clears the vector layer; lifecycle tests use a fake host adapter. Annotation construction remains a separate pure module that owns RPP drawing decisions and returns plain feature descriptions. The OpenLayers adapter handles WGS84-to-map projection and feature materialization.
+
+For issue #17, track WME's changed, added, and removed events for the `segments` data model as refresh hints. WME does not guarantee that these events cover every geometry or connectivity change; do not poll or claim complete coverage. Segment-only events request refreshes without updating the visible-RPP count.
 
 **Toolchain:** Vite+ 1.4.0 with npm, Vitest through `vp test`, `vp check` for formatting/lint/type checks, and `vp build` for one self-contained `.user.js` artifact. The current Node 24.22.1 runtime satisfies the documented Vite+ 1.4.0 requirement.
 
@@ -74,3 +76,11 @@
 - [x] Keep the current version during development; bump `@version` only in a separate release change.
 
 **Done when:** Automated checks pass, the generated file retains the Greasy Fork contract, and the manual WME smoke test matches the pre-refactor behavior.
+
+### Issue #17: Refresh after reported segment changes
+
+- [x] Track changed, added, and removed events for the `segments` model through the WME SDK.
+- [x] Filter events by `dataModelName === 'segments'` and route matching events through the Annotation refresh lifecycle only.
+- [ ] Verify representative segment changes, additions, and removals in WME; this smoke test remains pending.
+
+**Coverage limit:** These events are invalidation hints only. The WME SDK does not guarantee that every segment geometry or connectivity change emits one. No polling is used.
