@@ -12,9 +12,9 @@
 // @license      MIT
 // ==/UserScript==
 
-import { buildAnnotationDescriptions } from './src/annotation-construction.js';
-import { createOpenLayersAnnotationAdapter, toPlainSegmentSnapshot } from './src/openlayers-annotation-adapter.js';
+import { createAnnotationRefreshLifecycle } from './src/annotation-refresh-lifecycle.js';
 import { getUnseenReleaseNotice } from './src/release-notice.js';
+import { createWmeAnnotationRefreshHost } from './src/wme-annotation-refresh-host.js';
 
 (function () {
     'use strict';
@@ -47,15 +47,19 @@ import { getUnseenReleaseNotice } from './src/release-notice.js';
     const DEFAULT_LINE_ZOOM = 18;
 
     // === State ===
-    let vectorLayer = null;
     let enabled = false;
     let debug = false;
     let labelZoomThreshold = DEFAULT_LABEL_ZOOM;
     let lineZoomThreshold = DEFAULT_LINE_ZOOM;
 
-    let refreshTimeout = null;
-    let isRefreshing = false;
-    let pendingRefresh = false;
+    const annotationRefreshLifecycle = createAnnotationRefreshLifecycle(
+        createWmeAnnotationRefreshHost({
+            getWme: () => W,
+            getOpenLayers: () => OpenLayers,
+            getSettings: () => ({ enabled, labelZoomThreshold, lineZoomThreshold }),
+            debugLog,
+        }),
+    );
 
     // === UTILITY FUNCTIONS ===
 
@@ -146,158 +150,6 @@ import { getUnseenReleaseNotice } from './src/release-notice.js';
 
     function getVenueAttrs(venue) {
         return venue.attributes || venue;
-    }
-
-    function toPlainEntryPoint(entryPoint) {
-        try {
-            const attributes = entryPoint.attributes || entryPoint;
-            const point = attributes._point || attributes.point || attributes.position;
-            if (!point) return null;
-
-            const plainPoint = point.coordinates
-                ? { coordinates: Array.from(point.coordinates) }
-                : point.x != null
-                  ? { x: point.x, y: point.y }
-                  : {};
-            return { _point: plainPoint };
-        } catch (err) {
-            debugLog('[RPP] entry point snapshot error:', err.message);
-            return null;
-        }
-    }
-
-    function buildAnnotationFeatures() {
-        if (!W?.model?.venues?.getObjectArray) return [];
-
-        const currentZoom = W.map.getZoom();
-        const bounds = getViewportBounds();
-        const showLabels = currentZoom >= labelZoomThreshold;
-        const showLines = currentZoom >= lineZoomThreshold;
-        if (!showLabels && !showLines) return [];
-
-        const segModel = W.model?.segments;
-        debugLog(
-            '[RPP] segModel:',
-            !!segModel,
-            'getObjArr:',
-            typeof segModel?.getObjectArray,
-            'objects:',
-            typeof segModel?.objects,
-            'getArr:',
-            typeof segModel?.getArray,
-        );
-        const allSegments =
-            segModel?.getObjectArray?.() ?? segModel?.getArray?.() ?? Object.values(segModel?.objects ?? {}) ?? [];
-        debugLog('[RPP] allSegments count:', allSegments.length);
-
-        const segments = allSegments.map(toPlainSegmentSnapshot).filter(Boolean);
-        const venues = W.model.venues.getObjectArray().map((venue) => {
-            const attrs = getVenueAttrs(venue);
-            const entryPoints = attrs.entryExitPoints || attrs.navigationPoints;
-            return {
-                residential: attrs.residential,
-                geometry: attrs.geometry ? { x: attrs.geometry.x, y: attrs.geometry.y } : null,
-                houseNumber: attrs.houseNumber || '',
-                id: attrs.id,
-                entryPoints: entryPoints ? entryPoints.map(toPlainEntryPoint) : entryPoints,
-            };
-        });
-
-        const snapshot = {
-            zoom: currentZoom,
-            bounds,
-            labelZoomThreshold,
-            lineZoomThreshold,
-            venues,
-            segments,
-        };
-        const adapter = createOpenLayersAnnotationAdapter(OpenLayers, W.map.getOLMap());
-        const descriptions = buildAnnotationDescriptions(snapshot, adapter.projectCoordinates);
-        const features = adapter.materialize(descriptions);
-
-        if (venues.length > 0) {
-            const residentialVenues = venues.filter((venue) => venue.residential);
-            const hasGeometry = residentialVenues.filter((venue) => venue.geometry).length;
-            const inView = residentialVenues.filter(
-                (venue) => venue.geometry && isInViewport(venue.geometry, bounds),
-            ).length;
-            debugLog(
-                '[RPP] total:',
-                venues.length,
-                'res:',
-                residentialVenues.length,
-                'geom:',
-                hasGeometry,
-                'view:',
-                inView,
-                'zoom:',
-                currentZoom,
-                'features:',
-                features.length,
-            );
-        }
-        return features;
-    }
-
-    // === VECTOR LAYER ===
-
-    function createVectorLayer() {
-        removeVectorLayer();
-
-        vectorLayer = new OpenLayers.Layer.Vector('RPP Visualizer', { displayInLayerSwitcher: false });
-
-        W.map.getOLMap().addLayer(vectorLayer);
-        return vectorLayer;
-    }
-
-    function removeVectorLayer() {
-        if (vectorLayer) {
-            try {
-                W.map.getOLMap().removeLayer(vectorLayer);
-                vectorLayer.destroy();
-            } catch {
-                /* ignore */
-            }
-            vectorLayer = null;
-        }
-    }
-
-    function refreshAnnotations() {
-        if (refreshTimeout) clearTimeout(refreshTimeout);
-        if (isRefreshing) {
-            pendingRefresh = true;
-            return;
-        }
-        refreshTimeout = setTimeout(doRefreshAnnotations, 50);
-    }
-
-    function doRefreshAnnotations() {
-        isRefreshing = true;
-
-        removeVectorLayer();
-
-        if (!enabled) {
-            isRefreshing = false;
-            return;
-        }
-
-        const currentZoom = W.map.getZoom();
-        if (currentZoom < labelZoomThreshold && currentZoom < lineZoomThreshold) {
-            isRefreshing = false;
-            return;
-        }
-
-        const features = buildAnnotationFeatures();
-        if (features.length > 0) {
-            createVectorLayer();
-            vectorLayer.addFeatures(features);
-        }
-
-        isRefreshing = false;
-        if (pendingRefresh) {
-            pendingRefresh = false;
-            refreshAnnotations();
-        }
     }
 
     function countVisibleRPPs() {
@@ -459,11 +311,7 @@ import { getUnseenReleaseNotice } from './src/release-notice.js';
         enableCheckbox.addEventListener('change', function (e) {
             enabled = e.target.checked;
             savePreferences();
-            if (enabled) {
-                refreshAnnotations();
-            } else {
-                removeVectorLayer();
-            }
+            annotationRefreshLifecycle.requestRefresh();
             updateSidebarCount();
         });
         const enableLabel = createElem('label', {
@@ -511,7 +359,7 @@ import { getUnseenReleaseNotice } from './src/release-notice.js';
             if (!isNaN(value) && value >= 1 && value <= 22) {
                 labelZoomThreshold = value;
                 savePreferences();
-                refreshAnnotations();
+                annotationRefreshLifecycle.requestRefresh();
             }
         });
         labelZoomContainer.appendChild(labelZoomLabel);
@@ -543,7 +391,7 @@ import { getUnseenReleaseNotice } from './src/release-notice.js';
             if (!isNaN(value) && value >= 1 && value <= 22) {
                 lineZoomThreshold = value;
                 savePreferences();
-                refreshAnnotations();
+                annotationRefreshLifecycle.requestRefresh();
             }
         });
         lineZoomContainer.appendChild(lineZoomLabel);
@@ -614,28 +462,26 @@ import { getUnseenReleaseNotice } from './src/release-notice.js';
         showReleaseNotice();
         createSidebarPanel();
 
-        if (enabled) {
-            refreshAnnotations();
-        }
+        annotationRefreshLifecycle.requestRefresh();
 
         const olMap = W.map.getOLMap();
         olMap.events.register('zoomend', null, function () {
             if (enabled) {
                 updateSidebarCount();
-                refreshAnnotations();
+                annotationRefreshLifecycle.requestRefresh();
             }
         });
         olMap.events.register('moveend', null, function () {
             if (enabled) {
                 updateSidebarCount();
-                refreshAnnotations();
+                annotationRefreshLifecycle.requestRefresh();
             }
         });
 
         W.model?.venues?.on?.('objectschanged', function () {
             if (enabled) {
                 updateSidebarCount();
-                refreshAnnotations();
+                annotationRefreshLifecycle.requestRefresh();
             }
         });
 
