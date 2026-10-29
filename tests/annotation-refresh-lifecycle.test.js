@@ -260,6 +260,49 @@ describe('annotation refresh lifecycle', () => {
         expect(lastGoodLayer.destroyed).toBe(false);
         expect(logError).toHaveBeenCalledOnce();
     });
+
+    it('removes and destroys the displayed layer when clearing or replacing it', () => {
+        const layers = [];
+        const map = {
+            addLayer(layer) {
+                layers.push(layer);
+            },
+            removeLayer(layer) {
+                const index = layers.indexOf(layer);
+                if (index !== -1) layers.splice(index, 1);
+            },
+        };
+        class FakeVectorLayer {
+            constructor() {
+                this.destroyed = false;
+            }
+
+            addFeatures() {}
+
+            destroy() {
+                this.destroyed = true;
+            }
+        }
+        const host = createWmeAnnotationRefreshHost({
+            getWme: () => ({ map: { getOLMap: () => map, getZoom: () => 17 } }),
+            getOpenLayers: () => ({ Layer: { Vector: FakeVectorLayer } }),
+            getSettings: () => ({ enabled: true, labelZoomThreshold: 17, lineZoomThreshold: 18 }),
+        });
+
+        host.render([]);
+        const firstLayer = layers[0];
+        host.render([]);
+
+        expect(layers).toHaveLength(1);
+        expect(layers[0]).not.toBe(firstLayer);
+        expect(firstLayer.destroyed).toBe(true);
+
+        const secondLayer = layers[0];
+        host.clear();
+
+        expect(layers).toEqual([]);
+        expect(secondLayer.destroyed).toBe(true);
+    });
 });
 
 function createFakeHost() {

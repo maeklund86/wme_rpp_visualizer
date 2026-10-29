@@ -1,5 +1,6 @@
 import { buildAnnotationDescriptions } from './annotation-construction.js';
 import { createOpenLayersAnnotationAdapter, toPlainSegmentSnapshot } from './openlayers-annotation-adapter.js';
+import { getVenueAttrs, isInViewport } from './venue-geometry.js';
 
 export function createWmeAnnotationRefreshHost({ getWme, getOpenLayers, getSettings, debugLog }) {
     let vectorLayer = null;
@@ -14,17 +15,6 @@ export function createWmeAnnotationRefreshHost({ getWme, getOpenLayers, getSetti
             maxX: extent[2] || extent.right,
             maxY: extent[3] || extent.top,
         };
-    }
-
-    function isInViewport(geometry, bounds) {
-        if (!bounds || !geometry) return false;
-        const x = geometry.x;
-        const y = geometry.y;
-        return x >= bounds.minX && x <= bounds.maxX && y >= bounds.minY && y <= bounds.maxY;
-    }
-
-    function getVenueAttrs(venue) {
-        return venue.attributes || venue;
     }
 
     function toPlainEntryPoint(entryPoint) {
@@ -124,12 +114,24 @@ export function createWmeAnnotationRefreshHost({ getWme, getOpenLayers, getSetti
     function clear() {
         if (!vectorLayer) return;
         try {
-            getWme().map.getOLMap().removeLayer(vectorLayer);
-            vectorLayer.destroy();
+            cleanupLayer(getWme().map.getOLMap(), vectorLayer);
         } catch {
-            /* ignore */
+            /* ignore map lookup errors during cleanup */
         }
         vectorLayer = null;
+    }
+
+    function cleanupLayer(map, layer) {
+        try {
+            map.removeLayer(layer);
+        } catch {
+            /* ignore layer removal errors */
+        }
+        try {
+            layer.destroy();
+        } catch {
+            /* ignore layer destruction errors */
+        }
     }
 
     function render(features) {
@@ -143,32 +145,12 @@ export function createWmeAnnotationRefreshHost({ getWme, getOpenLayers, getSetti
             candidateLayer.addFeatures(features);
             map.addLayer(candidateLayer);
         } catch (error) {
-            try {
-                map.removeLayer(candidateLayer);
-            } catch {
-                /* ignore candidate cleanup errors */
-            }
-            try {
-                candidateLayer.destroy();
-            } catch {
-                /* ignore candidate cleanup errors */
-            }
+            cleanupLayer(map, candidateLayer);
             throw error;
         }
 
         vectorLayer = candidateLayer;
-        if (previousLayer) {
-            try {
-                map.removeLayer(previousLayer);
-            } catch {
-                /* ignore previous-layer cleanup errors */
-            }
-            try {
-                previousLayer.destroy();
-            } catch {
-                /* ignore previous-layer cleanup errors */
-            }
-        }
+        if (previousLayer) cleanupLayer(map, previousLayer);
     }
 
     return {

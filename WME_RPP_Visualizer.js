@@ -15,8 +15,9 @@
 
 import { createAnnotationRefreshLifecycle } from './src/annotation-refresh-lifecycle.js';
 import { getUnseenReleaseNotice } from './src/release-notice.js';
+import { getVenueAttrs, isInViewport } from './src/venue-geometry.js';
 import { createWmeAnnotationRefreshHost } from './src/wme-annotation-refresh-host.js';
-import { subscribeToSegmentRefreshEvents } from './src/wme-segment-refresh-events.js';
+import { createSegmentRefreshEventHandler, SEGMENT_MODEL_EVENT_NAMES } from './src/wme-segment-refresh-events.js';
 
 (function () {
     'use strict';
@@ -141,17 +142,6 @@ import { subscribeToSegmentRefreshEvents } from './src/wme-segment-refresh-event
             maxX: extent[2] || extent.right,
             maxY: extent[3] || extent.top,
         };
-    }
-
-    function isInViewport(geometry, bounds) {
-        if (!bounds || !geometry) return false;
-        const x = geometry.x;
-        const y = geometry.y;
-        return x >= bounds.minX && x <= bounds.maxX && y >= bounds.minY && y <= bounds.maxY;
-    }
-
-    function getVenueAttrs(venue) {
-        return venue.attributes || venue;
     }
 
     function countVisibleRPPs() {
@@ -493,7 +483,12 @@ import { subscribeToSegmentRefreshEvents } from './src/wme-segment-refresh-event
         });
         if (wmeSdk) {
             // These tracked events are refresh hints; WME does not guarantee coverage for every geometry or connectivity change.
-            subscribeToSegmentRefreshEvents(wmeSdk.Events, () => annotationRefreshLifecycle.requestRefresh());
+            const events = wmeSdk.Events;
+            events.trackDataModelEvents({ dataModelName: 'segments' });
+            const eventHandler = createSegmentRefreshEventHandler(() => annotationRefreshLifecycle.requestRefresh());
+            SEGMENT_MODEL_EVENT_NAMES.forEach((eventName) => {
+                events.on({ eventName, eventHandler });
+            });
         }
 
         console.log('[WME RPP Visualizer] Initialized');
