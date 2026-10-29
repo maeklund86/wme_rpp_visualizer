@@ -62,5 +62,6 @@ Single-context: one `GLOSSARY.md` and `docs/adr/` at the repo root. See `docs/ag
 
 ## Release
 
-- Greasy Fork auto-update from GitHub (`@updateURL`, `@downloadURL` in header)
+- Greasy Fork updates use the userscript's `@updateURL` and `@downloadURL` metadata
 - Commit version bumps separately from feature commits
+- For release design, release notes, artifact, and Greasy Fork publication, follow `docs/agents/greasyfork-release.md`
