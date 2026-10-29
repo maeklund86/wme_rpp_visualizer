@@ -19,6 +19,9 @@ A road segment that may be selected for an RPP road connection. Walking trails, 
 **Annotation**:
 A map marking that visualizes an RPP, its entry point, or its connection to a road.
 
+**Annotation refresh**:
+The updating of displayed Annotations after a change to an RPP, Entry point, Road segment, map view, or display setting.
+
 ## External references
 
 - [WME SDK documentation](https://web-assets.waze.com/wme_sdk_docs/production/latest/index.html): Official reference for Waze Map Editor integration.
