@@ -9,12 +9,14 @@
 // @supportURL   https://greasyfork.org/en/scripts/586509-wme-rpp-visualizer
 // @match        https://*.waze.com/*editor*
 // @grant        GM_info
+// @grant        unsafeWindow
 // @license      MIT
 // ==/UserScript==
 
 import { createAnnotationRefreshLifecycle } from './src/annotation-refresh-lifecycle.js';
 import { getUnseenReleaseNotice } from './src/release-notice.js';
 import { createWmeAnnotationRefreshHost } from './src/wme-annotation-refresh-host.js';
+import { subscribeToSegmentRefreshEvents } from './src/wme-segment-refresh-events.js';
 
 (function () {
     'use strict';
@@ -484,6 +486,15 @@ import { createWmeAnnotationRefreshHost } from './src/wme-annotation-refresh-hos
                 annotationRefreshLifecycle.requestRefresh();
             }
         });
+
+        const wmeSdk = unsafeWindow.getWmeSdk?.({
+            scriptId: 'wme-rpp-visualizer',
+            scriptName: 'WME RPP Visualizer',
+        });
+        if (wmeSdk) {
+            // These tracked events are refresh hints; WME does not guarantee coverage for every geometry or connectivity change.
+            subscribeToSegmentRefreshEvents(wmeSdk.Events, () => annotationRefreshLifecycle.requestRefresh());
+        }
 
         console.log('[WME RPP Visualizer] Initialized');
     }
