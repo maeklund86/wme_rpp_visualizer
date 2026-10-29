@@ -583,6 +583,13 @@ import { getUnseenReleaseNotice } from './src/release-notice.js';
             }
         });
 
+        W.model?.venues?.on?.('objectschanged', function () {
+            if (enabled) {
+                updateSidebarCount();
+                refreshAnnotations();
+            }
+        });
+
         console.log('[WME RPP Visualizer] Initialized');
     }
 
