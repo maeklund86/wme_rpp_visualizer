@@ -52,6 +52,10 @@ Issues live in this repo's GitHub Issues (`maeklund86/wme_rpp_visualizer`), mana
 
 Single-context: one `GLOSSARY.md` and `docs/adr/` at the repo root. See `docs/agents/domain.md`.
 
+### CodeGraph in worktrees
+
+Agent-created worktrees may lack `.codegraph/`. Use the primary checkout's index for unchanged code and direct reads for worktree-only changes. Do not initialize CodeGraph in a worktree.
+
 ## Drawing overview
 
 - Blue dashed line: RPP center → entry/exit point
