@@ -42,7 +42,7 @@ export default defineConfig({
         environment: 'node',
     },
     fmt: {
-        ignorePatterns: ['dist/**', '**/*.md'],
+        ignorePatterns: ['dist/**', '**/*.md', '.agents/.temporary/**'],
         singleQuote: true,
         semi: true,
         tabWidth: 4,
