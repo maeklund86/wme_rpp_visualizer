@@ -7,3 +7,6 @@ entities.json
 
 # CodeGraph local index
 .codegraph/
+
+# Agent workspace
+.agents/

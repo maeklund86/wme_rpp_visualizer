@@ -12,8 +12,9 @@ WME userscript built and checked with the project-local Vite+ toolchain.
 | `package.json`, `package-lock.json` | pinned Vite+ and WME SDK development tools |
 | `vite.config.ts` | Vite+ build, test, lint, and format configuration |
 | `dist/WME_RPP_Visualizer.user.js` | generated installable userscript; do not edit directly |
-| `docs/specs/archive/` | completed design specs; future active specs are GitHub Issues |
-| `docs/plans/` | active implementation plans; completed plans are archived |
+| `docs/specs/archive/` | durable completed design specs; future active specs are GitHub Issues |
+| `docs/plans/` | durable implementation plans; completed plans are archived |
+| `.agents/` | ignored agent workspace for temporary files, working plans, and working specs |
 
 ## Dev workflow
 
