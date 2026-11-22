@@ -38,9 +38,7 @@ export function createAnnotationRefreshLifecycle(host) {
 
         try {
             const state = host.readState();
-            const isBelowDisplayThresholds =
-                state.zoom < state.labelZoomThreshold && state.zoom < state.lineZoomThreshold;
-            if (!state.enabled || isBelowDisplayThresholds) {
+            if (!state.enabled || !state.hasVisibleLayers) {
                 host.clear();
                 return;
             }

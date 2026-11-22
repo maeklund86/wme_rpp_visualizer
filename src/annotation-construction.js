@@ -1,5 +1,3 @@
-import { isInViewport } from './venue-geometry.js';
-
 const LABEL_STYLE = {
     pointRadius: 0,
     labelAlign: 'cm',
@@ -47,26 +45,6 @@ const ROAD_DOT_STYLE = {
 
 const MAX_ROAD_CONNECTION_DISTANCE_SQUARED = 500 * 500;
 const WEB_MERCATOR_EARTH_RADIUS_METERS = 6378137;
-// WME ROAD_TYPE IDs: walking trail, walkway, pedestrian boardwalk, and stairway.
-const INELIGIBLE_ROAD_TYPE_IDS = new Set([5, 9, 10, 16]);
-const INELIGIBLE_ROAD_TYPE_NAMES = new Set(['walkingtrail', 'pedestrianboardwalk', 'walkway', 'stairway']);
-
-function getEntryPointCoordinates(entryPoint) {
-    const attributes = entryPoint?.attributes || entryPoint;
-    const point = attributes?._point || attributes?.point || attributes?.position;
-    if (!point) return null;
-
-    const coordinates = point.coordinates || (point.x != null ? [point.x, point.y] : null);
-    return coordinates && coordinates.length >= 2 ? [coordinates[0], coordinates[1]] : null;
-}
-
-function isConnectionEligible(segment) {
-    if (INELIGIBLE_ROAD_TYPE_IDS.has(segment.roadType)) return false;
-    if (typeof segment.roadType !== 'string') return true;
-
-    const roadTypeName = segment.roadType.toLowerCase().replace(/[^a-z]/g, '');
-    return !INELIGIBLE_ROAD_TYPE_NAMES.has(roadTypeName);
-}
 
 function findNearestRoadPoint(point, segments) {
     let bestPoint = null;
@@ -75,8 +53,6 @@ function findNearestRoadPoint(point, segments) {
     const metersPerMapUnit = 1 / Math.cosh(point[1] / WEB_MERCATOR_EARTH_RADIUS_METERS);
 
     segments.forEach((segment) => {
-        if (!isConnectionEligible(segment)) return;
-
         const vertices = segment.points || [];
         for (let index = 0; index < vertices.length - 1; index++) {
             const start = vertices[index];
@@ -124,15 +100,9 @@ function addRoadConnection(descriptions, sourceCoordinates, venueId, segments) {
 }
 
 export function buildAnnotationDescriptions(snapshot, projectCoordinates) {
-    const showLabels = snapshot.zoom >= snapshot.labelZoomThreshold;
-    const showLines = snapshot.zoom >= snapshot.lineZoomThreshold;
-    if (!showLabels && !showLines) return [];
-
+    const { venues = [], segments = [], showLabels, showLines } = snapshot;
     const descriptions = [];
-    const segments = snapshot.segments || [];
-    snapshot.venues.forEach((venue) => {
-        if (!venue.residential || !venue.geometry || !isInViewport(venue.geometry, snapshot.bounds)) return;
-
+    venues.forEach((venue) => {
         if (showLabels && venue.houseNumber) {
             descriptions.push({
                 kind: 'label',
@@ -142,14 +112,12 @@ export function buildAnnotationDescriptions(snapshot, projectCoordinates) {
             });
         }
 
-        const entryPoints = venue.entryPoints || venue.navigationPoints;
+        const entryPoints = venue.entryPoints || [];
         const projectedEntryPoints = [];
-        if (showLines && entryPoints) {
+        if (showLines && entryPoints.length > 0) {
             entryPoints.forEach((entryPoint, navIndex) => {
                 try {
-                    const coordinates = getEntryPointCoordinates(entryPoint);
-                    if (!coordinates) return;
-                    const projectedCoordinates = projectCoordinates(coordinates);
+                    const projectedCoordinates = projectCoordinates(entryPoint.coordinates);
                     projectedEntryPoints.push({ navIndex, coordinates: projectedCoordinates });
                     descriptions.push({
                         kind: 'entry-dot',
@@ -172,13 +140,13 @@ export function buildAnnotationDescriptions(snapshot, projectCoordinates) {
             });
         }
 
-        if (showLines && entryPoints && segments.length > 0) {
+        if (showLines && entryPoints.length > 0 && segments.length > 0) {
             projectedEntryPoints.forEach(({ coordinates }) => {
                 addRoadConnection(descriptions, coordinates, venue.id, segments);
             });
         }
 
-        if (showLines && (!entryPoints || entryPoints.length === 0) && segments.length > 0) {
+        if (showLines && entryPoints.length === 0 && !venue.hasEntryPointData && segments.length > 0) {
             addRoadConnection(descriptions, [venue.geometry.x, venue.geometry.y], venue.id, segments);
         }
     });

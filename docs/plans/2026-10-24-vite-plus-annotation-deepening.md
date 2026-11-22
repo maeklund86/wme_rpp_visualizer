@@ -14,6 +14,8 @@ For issue #17, track WME's changed, added, and removed events for the `segments`
 
 **Compatibility target:** Preserve current zoom and RPP viewport rules, feature geometry, styles, and feature properties. Issue #1 intentionally changes road selection to search all available segments within 500 meters and exclude walking-only segment types.
 
+**Seam update (2026-11-22):** The RPP view module now owns WME model access, viewport bounds, the RPP filter, Entry point and Road segment normalization, and the display gate. The entry module keeps settings, UI, and event wiring. Entry-point variant coverage now lives in `tests/wme-rpp-view.test.js`.
+
 ---
 
 ### Task 1: Make the current userscript buildable and tracked
