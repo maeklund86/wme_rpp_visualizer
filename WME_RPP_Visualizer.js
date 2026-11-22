@@ -15,8 +15,8 @@
 
 import { createAnnotationRefreshLifecycle } from './src/annotation-refresh-lifecycle.js';
 import { getUnseenReleaseNotice } from './src/release-notice.js';
-import { getVenueAttrs, isInViewport } from './src/venue-geometry.js';
 import { createWmeAnnotationRefreshHost } from './src/wme-annotation-refresh-host.js';
+import { createWmeRppView } from './src/wme-rpp-view.js';
 import { createSegmentRefreshEventHandler, SEGMENT_MODEL_EVENT_NAMES } from './src/wme-segment-refresh-events.js';
 
 (function () {
@@ -55,11 +55,17 @@ import { createSegmentRefreshEventHandler, SEGMENT_MODEL_EVENT_NAMES } from './s
     let labelZoomThreshold = DEFAULT_LABEL_ZOOM;
     let lineZoomThreshold = DEFAULT_LINE_ZOOM;
 
+    const rppView = createWmeRppView({
+        getWme: () => W,
+        getSettings: () => ({ enabled, labelZoomThreshold, lineZoomThreshold }),
+        debugLog,
+    });
+
     const annotationRefreshLifecycle = createAnnotationRefreshLifecycle(
         createWmeAnnotationRefreshHost({
             getWme: () => W,
             getOpenLayers: () => OpenLayers,
-            getSettings: () => ({ enabled, labelZoomThreshold, lineZoomThreshold }),
+            rppView,
             debugLog,
         }),
     );
@@ -128,33 +134,6 @@ import { createSegmentRefreshEventHandler, SEGMENT_MODEL_EVENT_NAMES } from './s
         } catch (e) {
             console.warn('[WME RPP Visualizer] Failed to load preferences:', e);
         }
-    }
-
-    // === DATA MODEL ===
-
-    function getViewportBounds() {
-        const olMap = W.map.getOLMap();
-        const extent = olMap.getExtent();
-        if (!extent) return null;
-        return {
-            minX: extent[0] || extent.left,
-            minY: extent[1] || extent.bottom,
-            maxX: extent[2] || extent.right,
-            maxY: extent[3] || extent.top,
-        };
-    }
-
-    function countVisibleRPPs() {
-        if (!W?.model?.venues?.getObjectArray) return 0;
-        const bounds = getViewportBounds();
-        if (!bounds) return 0;
-        let count = 0;
-        const venues = W.model.venues.getObjectArray();
-        venues.forEach((venue) => {
-            const attrs = getVenueAttrs(venue);
-            if (attrs.residential && attrs.geometry && isInViewport(attrs.geometry, bounds)) count++;
-        });
-        return count;
     }
 
     // === SIDEBAR UI ===
@@ -404,7 +383,7 @@ import { createSegmentRefreshEventHandler, SEGMENT_MODEL_EVENT_NAMES } from './s
                 color: '#666',
                 marginBottom: '10px',
             },
-            textContent: countVisibleRPPs() + ' RPP visible',
+            textContent: rppView.countVisibleVenues() + ' RPP visible',
         });
         divRoot.appendChild(countDiv);
 
@@ -441,8 +420,7 @@ import { createSegmentRefreshEventHandler, SEGMENT_MODEL_EVENT_NAMES } from './s
 
     function updateSidebarCount() {
         if (!sidebarPanel?.countDiv) return;
-        const count = enabled ? countVisibleRPPs() : 0;
-        sidebarPanel.countDiv.textContent = count + ' RPP visible';
+        sidebarPanel.countDiv.textContent = rppView.countVisibleVenues() + ' RPP visible';
     }
 
     // === INITIALIZATION ===

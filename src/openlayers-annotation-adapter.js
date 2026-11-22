@@ -1,14 +1,3 @@
-export function toPlainSegmentSnapshot(segment) {
-    const geometry = segment.geometry || segment.attributes?.geometry;
-    if (!geometry) return null;
-
-    return {
-        id: segment.segmentId || segment.id,
-        roadType: segment.roadType ?? segment.attributes?.roadType,
-        points: (geometry.components || []).map((point) => ({ x: point.x, y: point.y })),
-    };
-}
-
 export function createOpenLayersAnnotationAdapter(OpenLayers, map) {
     return {
         projectCoordinates(coordinates) {

@@ -17,7 +17,6 @@ describe('annotation refresh lifecycle', () => {
         const lifecycle = createAnnotationRefreshLifecycle(host);
 
         lifecycle.requestRefresh();
-        host.state.zoom = 18;
         host.features = ['latest feature'];
 
         await vi.advanceTimersByTimeAsync(49);
@@ -28,7 +27,7 @@ describe('annotation refresh lifecycle', () => {
         expect(host.buildCount).toBe(1);
     });
 
-    it('clears the display when disabled or below both zoom thresholds', async () => {
+    it('clears the display when disabled or when labels and lines are off', async () => {
         const host = createFakeHost();
         const lifecycle = createAnnotationRefreshLifecycle(host);
 
@@ -42,18 +41,20 @@ describe('annotation refresh lifecycle', () => {
 
         host.renderedFeatures = ['stale feature'];
         host.state.enabled = true;
-        host.state.zoom = 16;
+        host.state.showLabels = false;
+        host.state.showLines = false;
         lifecycle.requestRefresh();
         await vi.advanceTimersByTimeAsync(50);
         expect(host.renderedFeatures).toEqual([]);
         expect(host.buildCount).toBe(0);
     });
 
-    it('builds features when the zoom reaches either display threshold', async () => {
+    it('builds features when either display mode is on', async () => {
         const host = createFakeHost();
         const lifecycle = createAnnotationRefreshLifecycle(host);
+        host.state.showLabels = false;
+        host.state.showLines = true;
 
-        host.state.zoom = 18;
         lifecycle.requestRefresh();
         await vi.advanceTimersByTimeAsync(50);
 
@@ -61,15 +62,16 @@ describe('annotation refresh lifecycle', () => {
         expect(host.buildCount).toBe(1);
     });
 
-    it('uses enable and threshold settings current when the debounce ends', async () => {
+    it('uses enable and display settings current when the debounce ends', async () => {
         const host = createFakeHost();
         const lifecycle = createAnnotationRefreshLifecycle(host);
         host.state.enabled = false;
-        host.state.zoom = 16;
+        host.state.showLabels = false;
+        host.state.showLines = false;
 
         lifecycle.requestRefresh();
         host.state.enabled = true;
-        host.state.labelZoomThreshold = 16;
+        host.state.showLabels = true;
         await vi.advanceTimersByTimeAsync(50);
 
         expect(host.renderedFeatures).toEqual(['initial feature']);
@@ -97,7 +99,6 @@ describe('annotation refresh lifecycle', () => {
         const lifecycle = createAnnotationRefreshLifecycle(host);
         host.onBuild = () => {
             if (host.buildCount !== 1) return;
-            host.state.zoom = 19;
             host.features = ['latest trailing feature'];
             lifecycle.requestRefresh();
             lifecycle.requestRefresh();
@@ -241,9 +242,16 @@ describe('annotation refresh lifecycle', () => {
             },
         };
         const host = createWmeAnnotationRefreshHost({
-            getWme: () => ({ map: { getOLMap: () => map, getZoom: () => 17 } }),
+            getWme: () => ({ map: { getOLMap: () => map } }),
             getOpenLayers: () => ({ Layer: { Vector: FakeVectorLayer } }),
-            getSettings: () => ({ enabled: true, labelZoomThreshold: 17, lineZoomThreshold: 18 }),
+            rppView: {
+                readDisplayState: () => ({
+                    enabled: true,
+                    showLabels: true,
+                    showLines: false,
+                    hasVisibleAnnotations: true,
+                }),
+            },
         });
         host.buildFeatures = () => ['candidate feature'];
         const logError = vi.spyOn(console, 'error').mockImplementation(() => {});
@@ -284,9 +292,16 @@ describe('annotation refresh lifecycle', () => {
             }
         }
         const host = createWmeAnnotationRefreshHost({
-            getWme: () => ({ map: { getOLMap: () => map, getZoom: () => 17 } }),
+            getWme: () => ({ map: { getOLMap: () => map } }),
             getOpenLayers: () => ({ Layer: { Vector: FakeVectorLayer } }),
-            getSettings: () => ({ enabled: true, labelZoomThreshold: 17, lineZoomThreshold: 18 }),
+            rppView: {
+                readDisplayState: () => ({
+                    enabled: true,
+                    showLabels: true,
+                    showLines: false,
+                    hasVisibleAnnotations: true,
+                }),
+            },
         });
 
         host.render([]);
@@ -307,13 +322,13 @@ describe('annotation refresh lifecycle', () => {
 
 function createFakeHost() {
     return {
-        state: { enabled: true, zoom: 17, labelZoomThreshold: 17, lineZoomThreshold: 18 },
+        state: { enabled: true, showLabels: true, showLines: false },
         features: ['initial feature'],
         renderedFeatures: [],
         loggedErrors: [],
         buildCount: 0,
         readState() {
-            return { ...this.state };
+            return { ...this.state, hasVisibleAnnotations: this.state.showLabels || this.state.showLines };
         },
         buildFeatures() {
             this.buildCount++;

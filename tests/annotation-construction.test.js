@@ -1,24 +1,17 @@
 import { describe, expect, it } from 'vite-plus/test';
 import { buildAnnotationDescriptions } from '../src/annotation-construction.js';
-import { createOpenLayersAnnotationAdapter, toPlainSegmentSnapshot } from '../src/openlayers-annotation-adapter.js';
+import { createOpenLayersAnnotationAdapter } from '../src/openlayers-annotation-adapter.js';
 
 const identityProjection = ([x, y]) => [x, y];
 
 describe('annotation construction', () => {
-    it('creates labels only for residential places in view when the label zoom is reached', () => {
+    it('creates labels when labels are on', () => {
         const descriptions = buildAnnotationDescriptions(
             {
-                zoom: 17,
-                bounds: { minX: 0, minY: 0, maxX: 100, maxY: 100 },
-                labelZoomThreshold: 17,
-                lineZoomThreshold: 18,
-                venues: [
-                    { residential: true, geometry: { x: 20, y: 30 }, houseNumber: '42', id: 'inside' },
-                    { residential: false, geometry: { x: 40, y: 50 }, houseNumber: '7', id: 'not-rpp' },
-                    { residential: true, geometry: { x: 120, y: 50 }, houseNumber: '9', id: 'outside' },
-                    { residential: true, houseNumber: '11', id: 'missing-geometry' },
-                ],
+                venues: [{ geometry: { x: 20, y: 30 }, houseNumber: '42', id: 'inside' }],
                 segments: [],
+                showLabels: true,
+                showLines: false,
             },
             identityProjection,
         );
@@ -48,20 +41,16 @@ describe('annotation construction', () => {
     it('draws an entry point and its connection to the RPP after projecting WGS84 coordinates', () => {
         const descriptions = buildAnnotationDescriptions(
             {
-                zoom: 18,
-                bounds: { minX: 0, minY: 0, maxX: 100, maxY: 100 },
-                labelZoomThreshold: 17,
-                lineZoomThreshold: 18,
                 venues: [
                     {
-                        residential: true,
                         geometry: { x: 10, y: 20 },
-                        houseNumber: '',
                         id: 'home',
-                        entryPoints: [{ _point: { coordinates: [2, 3] } }],
+                        entryPoints: [{ coordinates: [2, 3] }],
                     },
                 ],
                 segments: [],
+                showLabels: false,
+                showLines: true,
             },
             ([longitude, latitude]) => [longitude + 100, latitude + 200],
         );
@@ -100,39 +89,34 @@ describe('annotation construction', () => {
         ]);
     });
 
-    it('connects entry points to the nearest eligible road regardless of viewport', () => {
+    it('connects entry points to the nearest Road segment', () => {
         const descriptions = buildAnnotationDescriptions(
             {
-                zoom: 18,
-                bounds: { minX: 0, minY: 0, maxX: 100, maxY: 100 },
-                labelZoomThreshold: 17,
-                lineZoomThreshold: 18,
                 venues: [
                     {
-                        residential: true,
                         geometry: { x: 10, y: 20 },
                         id: 'home',
-                        entryPoints: [{ point: { coordinates: [5, 6] } }],
+                        entryPoints: [{ coordinates: [5, 6] }],
                     },
                 ],
                 segments: [
                     {
                         id: 'visible-road',
-                        viewportPoint: { x: 20, y: 20 },
                         points: [
                             { x: 0, y: 0 },
                             { x: 10, y: 0 },
                         ],
                     },
                     {
-                        id: 'near-but-outside',
-                        viewportPoint: { x: 120, y: 20 },
+                        id: 'near-road',
                         points: [
                             { x: 0, y: 5 },
                             { x: 10, y: 5 },
                         ],
                     },
                 ],
+                showLabels: false,
+                showLines: true,
             },
             identityProjection,
         );
@@ -171,63 +155,13 @@ describe('annotation construction', () => {
         ]);
     });
 
-    it('skips walking trails, pedestrian boardwalks, walkways, and stairways', () => {
-        const descriptions = buildAnnotationDescriptions(
-            {
-                zoom: 18,
-                bounds: { minX: 0, minY: 0, maxX: 100, maxY: 100 },
-                labelZoomThreshold: 17,
-                lineZoomThreshold: 18,
-                venues: [
-                    {
-                        residential: true,
-                        geometry: { x: 10, y: 20 },
-                        id: 'home',
-                        entryPoints: [{ point: { coordinates: [5, 10] } }],
-                    },
-                ],
-                segments: [
-                    ...[
-                        [5, 'Walking Trail'],
-                        [10, 'Pedestrian Boardwalk'],
-                        [9, 'Walkway'],
-                        [16, 'Stairway'],
-                    ].map(([roadType], index) => ({
-                        roadType,
-                        points: [
-                            { x: 0, y: 9 - index },
-                            { x: 10, y: 9 - index },
-                        ],
-                    })),
-                    {
-                        roadType: 'Street',
-                        points: [
-                            { x: 0, y: 5 },
-                            { x: 10, y: 5 },
-                        ],
-                    },
-                ],
-            },
-            identityProjection,
-        );
-
-        expect(
-            descriptions.filter(({ kind }) => kind === 'road-dot').map(({ geometry }) => geometry.coordinates),
-        ).toEqual([[5, 5]]);
-    });
-
     it('does not draw a road connection when no segment is within 500 meters', () => {
         const snapshot = {
-            zoom: 18,
-            bounds: { minX: 0, minY: 0, maxX: 100, maxY: 100 },
-            labelZoomThreshold: 17,
-            lineZoomThreshold: 18,
             venues: [
                 {
-                    residential: true,
                     geometry: { x: 10, y: 20 },
                     id: 'home',
-                    entryPoints: [{ point: { coordinates: [5, 6] } }],
+                    entryPoints: [{ coordinates: [5, 6] }],
                 },
             ],
             segments: [
@@ -238,6 +172,8 @@ describe('annotation construction', () => {
                     ],
                 },
             ],
+            showLabels: false,
+            showLines: true,
         };
         const outsideLimit = buildAnnotationDescriptions(snapshot, identityProjection);
         const atLimit = buildAnnotationDescriptions(
@@ -265,21 +201,11 @@ describe('annotation construction', () => {
         const webMercatorYAt60Degrees = 6378137 * Math.log(Math.tan(Math.PI / 4 + Math.PI / 6));
         const descriptions = buildAnnotationDescriptions(
             {
-                zoom: 18,
-                bounds: {
-                    minX: -50,
-                    minY: webMercatorYAt60Degrees - 10,
-                    maxX: 50,
-                    maxY: webMercatorYAt60Degrees + 10,
-                },
-                labelZoomThreshold: 17,
-                lineZoomThreshold: 18,
                 venues: [
                     {
-                        residential: true,
                         geometry: { x: 0, y: webMercatorYAt60Degrees },
                         id: 'home',
-                        entryPoints: [{ point: { coordinates: [0, webMercatorYAt60Degrees] } }],
+                        entryPoints: [{ coordinates: [0, webMercatorYAt60Degrees] }],
                     },
                 ],
                 segments: [
@@ -296,6 +222,8 @@ describe('annotation construction', () => {
                         ],
                     },
                 ],
+                showLabels: false,
+                showLines: true,
             },
             identityProjection,
         );
@@ -305,47 +233,10 @@ describe('annotation construction', () => {
         ).toEqual([[0, webMercatorYAt60Degrees + 900]]);
     });
 
-    it('applies the same eligible-road search to an RPP without entry points', () => {
-        const descriptions = buildAnnotationDescriptions(
-            {
-                zoom: 18,
-                bounds: { minX: 0, minY: 0, maxX: 100, maxY: 100 },
-                labelZoomThreshold: 17,
-                lineZoomThreshold: 18,
-                venues: [{ residential: true, geometry: { x: 5, y: 6 }, id: 'home', entryPoints: [] }],
-                segments: [
-                    {
-                        roadType: 'Walkway',
-                        points: [
-                            { x: 0, y: 5 },
-                            { x: 10, y: 5 },
-                        ],
-                    },
-                    {
-                        roadType: 'Street',
-                        points: [
-                            { x: 0, y: 0 },
-                            { x: 10, y: 0 },
-                        ],
-                    },
-                ],
-            },
-            identityProjection,
-        );
-
-        expect(
-            descriptions.filter(({ kind }) => kind === 'road-dot').map(({ geometry }) => geometry.coordinates),
-        ).toEqual([[5, 0]]);
-    });
-
     it('draws a direct road connection for an RPP with no entry points', () => {
         const descriptions = buildAnnotationDescriptions(
             {
-                zoom: 18,
-                bounds: { minX: 0, minY: 0, maxX: 100, maxY: 100 },
-                labelZoomThreshold: 17,
-                lineZoomThreshold: 18,
-                venues: [{ residential: true, geometry: { x: 5, y: 6 }, id: 'home', entryPoints: [] }],
+                venues: [{ geometry: { x: 5, y: 6 }, id: 'home', entryPoints: [] }],
                 segments: [
                     {
                         points: [
@@ -354,6 +245,8 @@ describe('annotation construction', () => {
                         ],
                     },
                 ],
+                showLabels: false,
+                showLines: true,
             },
             identityProjection,
         );
@@ -392,49 +285,59 @@ describe('annotation construction', () => {
         ]);
     });
 
-    it('does not draw annotations below both zoom thresholds or without road geometry', () => {
-        const belowZoomThreshold = buildAnnotationDescriptions(
-            {
-                zoom: 16,
-                bounds: { minX: 0, minY: 0, maxX: 100, maxY: 100 },
-                labelZoomThreshold: 17,
-                lineZoomThreshold: 18,
-                venues: [{ residential: true, geometry: { x: 5, y: 6 }, houseNumber: '42', id: 'home' }],
-                segments: [],
-            },
-            identityProjection,
-        );
-        const noRoadGeometry = buildAnnotationDescriptions(
-            {
-                zoom: 18,
-                bounds: { minX: 0, minY: 0, maxX: 100, maxY: 100 },
-                labelZoomThreshold: 17,
-                lineZoomThreshold: 18,
-                venues: [{ residential: true, geometry: { x: 5, y: 6 }, id: 'home' }],
-                segments: [],
-            },
-            identityProjection,
-        );
-
-        expect(belowZoomThreshold).toEqual([]);
-        expect(noRoadGeometry).toEqual([]);
-    });
-
-    it('ignores malformed entry points and does not connect when no usable road geometry exists', () => {
+    it('does not fall back when raw Entry point data exists but is unusable', () => {
         const descriptions = buildAnnotationDescriptions(
             {
-                zoom: 18,
-                bounds: { minX: 0, minY: 0, maxX: 100, maxY: 100 },
-                labelZoomThreshold: 17,
-                lineZoomThreshold: 18,
-                venues: [
+                venues: [{ geometry: { x: 5, y: 6 }, id: 'home', entryPoints: [], hasEntryPointData: true }],
+                segments: [
                     {
-                        residential: true,
-                        geometry: { x: 5, y: 6 },
-                        id: 'home',
-                        entryPoints: [{ point: { coordinates: [1] } }],
+                        points: [
+                            { x: 0, y: 0 },
+                            { x: 10, y: 0 },
+                        ],
                     },
                 ],
+                showLabels: false,
+                showLines: true,
+            },
+            identityProjection,
+        );
+
+        expect(descriptions).toEqual([]);
+    });
+
+    it('ignores a venue without geometry', () => {
+        const descriptions = buildAnnotationDescriptions(
+            {
+                venues: [{ houseNumber: '42', id: 'no-geometry' }],
+                segments: [],
+                showLabels: true,
+                showLines: false,
+            },
+            identityProjection,
+        );
+
+        expect(descriptions).toEqual([]);
+    });
+
+    it('does not draw annotations when labels and lines are off', () => {
+        const descriptions = buildAnnotationDescriptions(
+            {
+                venues: [{ geometry: { x: 5, y: 6 }, houseNumber: '42', id: 'home' }],
+                segments: [],
+                showLabels: false,
+                showLines: false,
+            },
+            identityProjection,
+        );
+
+        expect(descriptions).toEqual([]);
+    });
+
+    it('does not connect when no usable road geometry exists', () => {
+        const descriptions = buildAnnotationDescriptions(
+            {
+                venues: [{ geometry: { x: 5, y: 6 }, id: 'home', entryPoints: [] }],
                 segments: [
                     {
                         points: [
@@ -443,85 +346,13 @@ describe('annotation construction', () => {
                         ],
                     },
                 ],
+                showLabels: false,
+                showLines: true,
             },
             identityProjection,
         );
 
         expect(descriptions).toEqual([]);
-    });
-
-    it('accepts the WME entry-point field variants and preserves their indexes', () => {
-        const descriptions = buildAnnotationDescriptions(
-            {
-                zoom: 18,
-                bounds: { minX: 0, minY: 0, maxX: 100, maxY: 100 },
-                labelZoomThreshold: 17,
-                lineZoomThreshold: 18,
-                venues: [
-                    {
-                        residential: true,
-                        geometry: { x: 10, y: 20 },
-                        id: 'home',
-                        navigationPoints: [
-                            { _point: { coordinates: [1, 2] } },
-                            { point: { x: 3, y: 4 } },
-                            { position: { coordinates: [5, 6] } },
-                            { attributes: { point: { coordinates: [7, 8] } } },
-                        ],
-                    },
-                ],
-                segments: [],
-            },
-            identityProjection,
-        );
-
-        expect(
-            descriptions
-                .filter(({ kind }) => kind === 'entry-dot')
-                .map(({ geometry, attributes }) => [geometry.coordinates, attributes.navIndex]),
-        ).toEqual([
-            [[1, 2], 0],
-            [[3, 4], 1],
-            [[5, 6], 2],
-            [[7, 8], 3],
-        ]);
-    });
-});
-
-describe('WME road segment snapshot', () => {
-    it('normalizes segment geometry and preserves its road type', () => {
-        const directGeometry = {
-            components: [
-                { x: 0, y: 1 },
-                { x: 10, y: 1 },
-            ],
-            getBounds: () => ({ getCenterLonLat: () => ({ lon: 5, lat: 1 }) }),
-        };
-        const wrappedGeometry = {
-            components: [
-                { x: 2, y: 3, components: [{ x: 2, y: 3 }] },
-                { x: 4, y: 5 },
-            ],
-        };
-
-        expect(toPlainSegmentSnapshot({ segmentId: 'direct', roadType: 'Street', geometry: directGeometry })).toEqual({
-            id: 'direct',
-            roadType: 'Street',
-            points: [
-                { x: 0, y: 1 },
-                { x: 10, y: 1 },
-            ],
-        });
-        expect(
-            toPlainSegmentSnapshot({ id: 'wrapped', attributes: { roadType: 'Walkway', geometry: wrappedGeometry } }),
-        ).toEqual({
-            id: 'wrapped',
-            roadType: 'Walkway',
-            points: [
-                { x: 2, y: 3 },
-                { x: 4, y: 5 },
-            ],
-        });
     });
 });
 
