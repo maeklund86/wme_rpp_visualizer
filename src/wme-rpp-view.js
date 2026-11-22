@@ -9,9 +9,9 @@ const ROAD_TYPE_NAMES_BY_ID = new Map([
     [10, 'pedestrianboardwalk'],
     [16, 'stairway'],
 ]);
-const INELIGIBLE_ROAD_TYPE_NAMES = new Set(['walkingtrail', 'pedestrianboardwalk', 'walkway', 'stairway']);
+const INELIGIBLE_ROAD_TYPE_NAMES = new Set(ROAD_TYPE_NAMES_BY_ID.values());
 
-export function createWmeRppView({ getWme, getSettings, debugLog }) {
+export function createWmeRppView({ getWme, getSettings, debugLog = () => {} }) {
     function readDisplayState() {
         const settings = getSettings();
         const zoom = getWme()?.map?.getZoom?.();
@@ -41,7 +41,7 @@ export function createWmeRppView({ getWme, getSettings, debugLog }) {
             const coordinates = point.coordinates || (point.x != null ? [point.x, point.y] : null);
             return coordinates && coordinates.length >= 2 ? { coordinates: [coordinates[0], coordinates[1]] } : null;
         } catch (error) {
-            debugLog?.('[RPP] entry point snapshot error:', error.message);
+            debugLog('[RPP] entry point snapshot error:', error.message);
             return null;
         }
     }
@@ -92,19 +92,18 @@ export function createWmeRppView({ getWme, getSettings, debugLog }) {
         return !!(attrs.residential && attrs.geometry && isInViewport(attrs.geometry, bounds));
     }
 
-    function readVenueModels() {
-        const W = getWme();
+    function readVenueModels(W) {
         const allVenues = getVenueModels(W);
         const bounds = getViewportBounds(W);
         const visibleVenues = bounds ? allVenues.filter((venue) => isVisibleVenue(venue, bounds)) : [];
-        return { W, allVenues, visibleVenues };
+        return { allVenues, visibleVenues };
     }
 
     function readEligibleSegments(W) {
         const segModel = W?.model?.segments;
         const allSegments =
             segModel?.getObjectArray?.() ?? segModel?.getArray?.() ?? Object.values(segModel?.objects ?? {}) ?? [];
-        debugLog?.('[RPP] allSegments count:', allSegments.length);
+        debugLog('[RPP] allSegments count:', allSegments.length);
 
         return allSegments.map(normalizeSegment).filter(Boolean).filter(isConnectionEligible);
     }
@@ -112,7 +111,7 @@ export function createWmeRppView({ getWme, getSettings, debugLog }) {
     function countVisibleVenues() {
         const display = readDisplayState();
         if (!display.enabled) return 0;
-        return readVenueModels().visibleVenues.length;
+        return readVenueModels(getWme()).visibleVenues.length;
     }
 
     function emptySnapshot() {
@@ -123,19 +122,26 @@ export function createWmeRppView({ getWme, getSettings, debugLog }) {
         const display = readDisplayState();
         if (!display.enabled || !display.hasVisibleLayers) return emptySnapshot();
 
-        const { W, allVenues, visibleVenues } = readVenueModels();
+        const W = getWme();
+        const { allVenues, visibleVenues } = readVenueModels(W);
         const venues = visibleVenues.map(normalizeVenue);
         const segments = display.showLines ? readEligibleSegments(W) : [];
 
-        const residentialVenues = allVenues.filter((venue) => getVenueAttrs(venue).residential);
-        const withGeometry = residentialVenues.filter((venue) => getVenueAttrs(venue).geometry);
-        debugLog?.(
+        let residentialCount = 0;
+        let geometryCount = 0;
+        allVenues.forEach((venue) => {
+            const attrs = getVenueAttrs(venue);
+            if (!attrs.residential) return;
+            residentialCount++;
+            if (attrs.geometry) geometryCount++;
+        });
+        debugLog(
             '[RPP] total:',
             allVenues.length,
             'res:',
-            residentialVenues.length,
+            residentialCount,
             'geom:',
-            withGeometry.length,
+            geometryCount,
             'view:',
             venues.length,
             'segments:',

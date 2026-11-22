@@ -1,7 +1,7 @@
 import { buildAnnotationDescriptions } from './annotation-construction.js';
 import { createOpenLayersAnnotationAdapter } from './openlayers-annotation-adapter.js';
 
-export function createWmeAnnotationRefreshHost({ getWme, getOpenLayers, rppView, debugLog }) {
+export function createWmeAnnotationRefreshHost({ getWme, getOpenLayers, rppView, debugLog = () => {} }) {
     let vectorLayer = null;
 
     function buildFeatures() {
@@ -13,7 +13,7 @@ export function createWmeAnnotationRefreshHost({ getWme, getOpenLayers, rppView,
         const snapshot = rppView.readSnapshot();
         const descriptions = buildAnnotationDescriptions(snapshot, adapter.projectCoordinates);
         const features = adapter.materialize(descriptions);
-        debugLog?.('[RPP] features:', features.length);
+        debugLog('[RPP] features:', features.length);
         return features;
     }
 

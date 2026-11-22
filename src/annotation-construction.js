@@ -103,6 +103,8 @@ export function buildAnnotationDescriptions(snapshot, projectCoordinates) {
     const { venues = [], segments = [], showLabels, showLines } = snapshot;
     const descriptions = [];
     venues.forEach((venue) => {
+        if (!venue.geometry) return;
+
         if (showLabels && venue.houseNumber) {
             descriptions.push({
                 kind: 'label',

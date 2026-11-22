@@ -306,6 +306,20 @@ describe('annotation construction', () => {
         expect(descriptions).toEqual([]);
     });
 
+    it('ignores a venue without geometry', () => {
+        const descriptions = buildAnnotationDescriptions(
+            {
+                venues: [{ houseNumber: '42', id: 'no-geometry' }],
+                segments: [],
+                showLabels: true,
+                showLines: false,
+            },
+            identityProjection,
+        );
+
+        expect(descriptions).toEqual([]);
+    });
+
     it('does not draw annotations when labels and lines are off', () => {
         const descriptions = buildAnnotationDescriptions(
             {
