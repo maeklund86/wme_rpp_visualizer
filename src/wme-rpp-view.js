@@ -18,7 +18,7 @@ export function createWmeRppView({ getWme, getSettings, debugLog = () => {} }) {
         const enabled = !!settings.enabled;
         const showLabels = enabled && zoom >= settings.labelZoomThreshold;
         const showLines = enabled && zoom >= settings.lineZoomThreshold;
-        return { enabled, zoom, showLabels, showLines, hasVisibleLayers: showLabels || showLines };
+        return { enabled, zoom, showLabels, showLines, hasVisibleAnnotations: showLabels || showLines };
     }
 
     function getViewportBounds(W) {
@@ -120,7 +120,7 @@ export function createWmeRppView({ getWme, getSettings, debugLog = () => {} }) {
 
     function readSnapshot() {
         const display = readDisplayState();
-        if (!display.enabled || !display.hasVisibleLayers) return emptySnapshot();
+        if (!display.enabled || !display.hasVisibleAnnotations) return emptySnapshot();
 
         const W = getWme();
         const { allVenues, visibleVenues } = readVenueModels(W);

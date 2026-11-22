@@ -92,7 +92,7 @@ describe('WME annotation refresh host', () => {
                 zoom: 17,
                 showLabels: true,
                 showLines: false,
-                hasVisibleLayers: true,
+                hasVisibleAnnotations: true,
             }),
         };
         const host = createWmeAnnotationRefreshHost({
@@ -106,7 +106,7 @@ describe('WME annotation refresh host', () => {
             zoom: 17,
             showLabels: true,
             showLines: false,
-            hasVisibleLayers: true,
+            hasVisibleAnnotations: true,
         });
     });
 
@@ -119,7 +119,7 @@ describe('WME annotation refresh host', () => {
                     enabled: true,
                     showLabels: true,
                     showLines: false,
-                    hasVisibleLayers: true,
+                    hasVisibleAnnotations: true,
                 }),
             },
         });

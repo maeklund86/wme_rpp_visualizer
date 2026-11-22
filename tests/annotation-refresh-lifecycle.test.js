@@ -249,7 +249,7 @@ describe('annotation refresh lifecycle', () => {
                     enabled: true,
                     showLabels: true,
                     showLines: false,
-                    hasVisibleLayers: true,
+                    hasVisibleAnnotations: true,
                 }),
             },
         });
@@ -299,7 +299,7 @@ describe('annotation refresh lifecycle', () => {
                     enabled: true,
                     showLabels: true,
                     showLines: false,
-                    hasVisibleLayers: true,
+                    hasVisibleAnnotations: true,
                 }),
             },
         });
@@ -328,7 +328,7 @@ function createFakeHost() {
         loggedErrors: [],
         buildCount: 0,
         readState() {
-            return { ...this.state, hasVisibleLayers: this.state.showLabels || this.state.showLines };
+            return { ...this.state, hasVisibleAnnotations: this.state.showLabels || this.state.showLines };
         },
         buildFeatures() {
             this.buildCount++;

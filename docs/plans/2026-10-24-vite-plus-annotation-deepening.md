@@ -45,7 +45,7 @@ For issue #17, track WME's changed, added, and removed events for the `segments`
 - Add: plain annotation input/output types or documented value shapes, as needed
 
 - [x] Add tests for RPP filtering, missing geometry, viewport inclusion/exclusion, and label/line zoom thresholds.
-- [x] Cover entry-point field variants (`_point`, `point`, `position`; `coordinates` and `x`/`y`) and entry-point-to-RPP drawing.
+- [x] Cover entry-point field variants in the RPP view tests (`_point`, `point`, `position`; `coordinates` and `x`/`y`) and entry-point-to-RPP drawing in the construction tests.
 - [x] Cover nearest-road projection across the full segment snapshot, connection-eligible road types, the 500-meter limit, entry/fallback cases, and degenerate geometry.
 - [x] Assert feature kinds, styles, and metadata that are part of current behavior.
 - [x] Use deterministic adapters for projection and feature materialization; do not require the WME runtime for these tests.
@@ -57,11 +57,11 @@ For issue #17, track WME's changed, added, and removed events for the `segments`
 **Files:**
 - Add: annotation construction source module(s)
 - Add: production WME/OpenLayers adapter code as needed
-- Modify: entry module to gather the snapshot and install planned features
+- Modify: entry module to compose the RPP view and install planned features
 - Modify: tests from Task 2 only when they expose a mismatch with observed current behavior
 
 - [x] Move annotation decisions into the annotation module: residential venue handling, entry-point interpretation, nearest-road selection, labels, dots, lines, and fallback behavior.
-- [x] Keep WME model access and viewport/zoom retrieval in the entry module; pass the module a plain snapshot.
+- [x] Keep WME model access and viewport/zoom retrieval in the RPP view module; pass annotation construction a plain snapshot.
 - [x] Delegate WGS84-to-map projection and OpenLayers feature construction to the production adapter.
 - [x] Keep sidebar, refresh scheduling, and vector-layer lifecycle outside the annotation module.
 - [ ] Compare generated features against the characterization tests and the manual WME baseline; do not fold unrelated fixes into the refactor.

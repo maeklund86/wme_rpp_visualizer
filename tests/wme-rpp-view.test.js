@@ -13,7 +13,7 @@ describe('RPP view', () => {
             zoom: 18,
             showLabels: true,
             showLines: true,
-            hasVisibleLayers: true,
+            hasVisibleAnnotations: true,
         });
     });
 
@@ -28,7 +28,7 @@ describe('RPP view', () => {
             zoom: 17,
             showLabels: true,
             showLines: false,
-            hasVisibleLayers: true,
+            hasVisibleAnnotations: true,
         });
     });
 
@@ -43,7 +43,7 @@ describe('RPP view', () => {
             zoom: 18,
             showLabels: false,
             showLines: false,
-            hasVisibleLayers: false,
+            hasVisibleAnnotations: false,
         });
     });
 
@@ -294,6 +294,36 @@ describe('RPP view', () => {
                     ],
                 }),
             getSettings: () => ({ enabled: false, labelZoomThreshold: 17, lineZoomThreshold: 18 }),
+        });
+
+        expect(view.readSnapshot()).toEqual({
+            venues: [],
+            segments: [],
+            showLabels: false,
+            showLines: false,
+        });
+    });
+
+    it('returns an empty snapshot below both zoom thresholds', () => {
+        const view = createWmeRppView({
+            getWme: () =>
+                createFakeWme({
+                    zoom: 10,
+                    venues: [{ attributes: { residential: true, geometry: { x: 20, y: 20 } } }],
+                    segments: [
+                        {
+                            segmentId: 'street',
+                            roadType: 'Street',
+                            geometry: {
+                                components: [
+                                    { x: 0, y: 0 },
+                                    { x: 10, y: 0 },
+                                ],
+                            },
+                        },
+                    ],
+                }),
+            getSettings: () => ({ enabled: true, labelZoomThreshold: 17, lineZoomThreshold: 18 }),
         });
 
         expect(view.readSnapshot()).toEqual({

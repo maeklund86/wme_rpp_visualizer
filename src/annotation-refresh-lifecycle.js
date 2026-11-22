@@ -38,7 +38,7 @@ export function createAnnotationRefreshLifecycle(host) {
 
         try {
             const state = host.readState();
-            if (!state.enabled || !state.hasVisibleLayers) {
+            if (!state.enabled || !state.hasVisibleAnnotations) {
                 host.clear();
                 return;
             }
